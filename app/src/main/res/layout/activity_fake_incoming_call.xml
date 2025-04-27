@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/incoming_call_screen"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF"
+    android:padding="24dp">
+
+    <!-- Фото абонента -->
+<!--    <ImageView-->
+<!--        android:id="@+id/photo"-->
+<!--        android:layout_width="120dp"-->
+<!--        android:layout_height="120dp"-->
+<!--        android:layout_centerHorizontal="true"-->
+<!--        android:layout_marginTop="64dp"-->
+<!--        android:scaleType="centerCrop"-->
+<!--        android:background="@drawable/circle_background"-->
+<!--        android:src="@drawable/ic_emergency_contacts" />-->
+
+    <!-- Имя -->
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/incoming_label"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp"
+        android:text="Айдана"
+        android:textColor="#000000"
+        android:textSize="35sp"
+        android:textStyle="bold" />
+
+    <!-- Номер -->
+    <TextView
+        android:id="@+id/number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/name"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:text="+7 (777) 000-0000"
+        android:textColor="#000000"
+        android:textSize="16sp" />
+
+    <!-- Текст "Входящий звонок" -->
+    <TextView
+        android:id="@+id/incoming_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:text="Вызов от"
+        android:textColor="#000000"
+        android:textSize="20sp" />
+
+<!--    &lt;!&ndash; Кнопка Отклонить &ndash;&gt;-->
+<!--    <ImageButton-->
+<!--        android:id="@+id/btn_decline"-->
+<!--        android:layout_width="72dp"-->
+<!--        android:layout_height="72dp"-->
+<!--        android:layout_alignParentBottom="true"-->
+<!--        android:layout_alignParentStart="true"-->
+<!--        android:layout_marginStart="48dp"-->
+<!--        android:layout_marginBottom="48dp"-->
+<!--        android:background="@drawable/bg_red_round_button"-->
+<!--        android:src="@drawable/ic_call_end"-->
+<!--        android:scaleType="centerInside"-->
+<!--        android:contentDescription="Отклонить"-->
+<!--        app:tint="#FFFFFF" />-->
+
+
+    <TextView
+        android:id="@+id/call_accept_text"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="200dp"
+        android:text="Чтобы ответить, проведите по экрану вверх."
+        android:textColor="#4B4B4B"
+        android:textSize="10sp"
+        android:gravity="center" />
+
+    <!-- Кнопка Принять -->
+    <ImageButton
+        android:id="@+id/btn"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="90dp"
+        android:background="@drawable/bg_gray_round_button"
+        android:src="@drawable/call"
+        android:scaleType="centerInside"
+        android:contentDescription="Принять"
+        android:padding="16dp" />
+
+
+    <TextView
+        android:id="@+id/call_decline_text"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp"
+        android:text="Чтобы ответить, проведите по экрану вверх."
+        android:textColor="#4B4B4B"
+        android:textSize="10sp"
+        android:gravity="center" />
+
+</RelativeLayout>

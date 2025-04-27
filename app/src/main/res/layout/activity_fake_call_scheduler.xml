@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:padding="20dp"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Поля ввода -->
+    <EditText
+        android:id="@+id/input_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:hint="Имя"
+        android:minHeight="48dp" />
+
+    <EditText
+        android:id="@+id/input_number"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Номер"
+        android:minHeight="48dp" />
+
+    <EditText
+        android:id="@+id/input_photo_url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Ссылка на фото"
+        android:minHeight="48dp" />
+
+    <Button
+        android:id="@+id/button_select_audio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Выбрать аудио"
+        android:layout_marginTop="8dp"/>
+
+    <Button
+        android:id="@+id/button_pick_time"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Запланировать звонок" />
+
+    <!-- Линия -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#CCCCCC"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/empty_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Нет запланированных звонков"
+        android:textSize="18sp"
+        android:textColor="@color/gray"
+        android:visibility="gone"/>
+
+    <!-- Список звонков -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/fake_calls_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="8dp"/>
+
+</LinearLayout>

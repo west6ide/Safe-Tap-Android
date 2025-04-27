@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="300dp"
+    android:layout_height="match_parent"
+    android:layout_gravity="start"
+    android:background="@android:color/white">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="start"
+        android:padding="16dp">
+
+    <!-- Фото пользователя -->
+    <ImageView
+        android:id="@+id/profile_image"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_profile_placeholder"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/circle_background"
+        android:scaleType="centerCrop"/>
+
+    <!-- Имя пользователя -->
+    <TextView
+        android:id="@+id/profile_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ayan Serikovich"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="8dp"
+        android:textColor="#000000"/>
+
+    <!-- Телефон -->
+    <TextView
+        android:id="@+id/profile_phone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="+7 777 777 77 77"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="4dp"
+        android:textColor="#555555"/>
+
+    <!-- Email -->
+    <TextView
+        android:id="@+id/profile_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ayan777@gmail.com"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp"
+        android:textColor="#555555"/>
+
+    <!-- Линия -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="#CCCCCC" />
+
+    <!-- Настройки -->
+    <LinearLayout
+        android:id="@+id/settings_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_options"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textSize="16sp"
+            android:layout_marginStart="12dp"
+            android:textColor="#000000"/>
+    </LinearLayout>
+
+    <!-- Доступ к локации -->
+    <LinearLayout
+        android:id="@+id/location_access_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_options"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Location access"
+            android:textSize="16sp"
+            android:layout_marginStart="12dp"
+            android:textColor="#000000"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="#CCCCCC" />
+
+    <!-- Выход -->
+    <LinearLayout
+        android:id="@+id/logout_option"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_logout"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Log out"
+            android:textSize="16sp"
+            android:layout_marginStart="12dp"
+            android:textColor="#FF0000"/>
+    </LinearLayout>
+
+
+    </LinearLayout>
+
+</FrameLayout>

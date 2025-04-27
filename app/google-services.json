@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "36077418896",
+    "project_id": "safetap-50528",
+    "storage_bucket": "safetap-50528.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:36077418896:android:eb2866952b1e935bbedb15",
+        "android_client_info": {
+          "package_name": "com.example.safetapandroid"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvIYMPc91OIqa4denTS3oCUlVuyOEoY_k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
