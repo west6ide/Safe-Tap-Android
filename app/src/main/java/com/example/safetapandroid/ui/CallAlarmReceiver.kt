@@ -13,6 +13,7 @@ class CallAlarmReceiver : BroadcastReceiver() {
         val name = intent.getStringExtra("name") ?: "Неизвестный"
         val number = intent.getStringExtra("number") ?: "+7 777 777 77 77"
         val photoUrl = intent.getStringExtra("photoUrl") ?: ""
+        val selectedRole = intent.getStringExtra("role") ?: "assistant"
 
         // Запуск экрана входящего вызова
         val callIntent = Intent(context, FakeIncomingCallActivity::class.java).apply {
@@ -20,6 +21,7 @@ class CallAlarmReceiver : BroadcastReceiver() {
             putExtra("name", name)
             putExtra("number", number)
             putExtra("photoUrl", photoUrl)
+            putExtra("role", selectedRole) // ✅ передаем роль
         }
         context.startActivity(callIntent)
 

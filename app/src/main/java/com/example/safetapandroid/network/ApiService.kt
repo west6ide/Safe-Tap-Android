@@ -50,10 +50,9 @@ data class FakeCall(
     val id: Long = System.currentTimeMillis(), // ID нужен для удаления и поиска
     val name: String,
     val number: String,
-    val photoUrl: String,
     val hour: Int,
     val minute: Int,
-    val audioResId: Int? = null
+    val role: String = "assistant" // по умолчанию
 )
 
 data class DangerousPerson(

@@ -34,7 +34,7 @@ fun SignInScreen(viewModel: AuthViewModel, onSignUpClick: () -> Unit, onLoginSuc
     ) {
         Spacer(modifier = Modifier.height(30.dp))
 
-        Image(painter = painterResource(id = R.drawable.sos_logo), contentDescription = "App Logo")
+        Image(painter = painterResource(id = R.drawable.log), contentDescription = "App Logo")
         Spacer(modifier = Modifier.height(20.dp))
 
         PhoneNumberField(

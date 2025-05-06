@@ -42,6 +42,16 @@
         android:textColor="#444444"
         android:textSize="16sp" />
 
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/ai_loading"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_centerInParent="true"
+        app:lottie_rawRes="@raw/mic_loader"
+        app:lottie_autoPlay="true"
+        app:lottie_loop="true"
+        android:visibility="gone" />
+
     <!-- Кнопка завершения звонка -->
     <ImageButton
         android:id="@+id/btn_end_call"

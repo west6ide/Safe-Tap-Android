@@ -1,4 +1,14 @@
 <resources>
     <string name="app_name">SafeTapAndroid</string>
     <string name="google_map_api_key">AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E</string>
+    <string-array name="fakecall_roles">
+        <item>Мама</item>
+        <item>Брат</item>
+        <item>Парень</item>
+    </string-array>
+    <string-array name="transport_modes">
+        <item>Авто</item>
+        <item>Пешком</item>
+        <item>Общественный транспорт</item>
+    </string-array>
 </resources>

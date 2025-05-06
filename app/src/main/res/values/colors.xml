@@ -10,4 +10,5 @@
     <color name="lavender">#8692f7</color>
     <color name="gray">#838383</color>
     <color name="red">#FF0000</color>
+    <color name="splash_background">#01C091</color>
 </resources>

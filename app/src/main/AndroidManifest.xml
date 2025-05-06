@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
 
 
 
@@ -14,9 +16,9 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/logo"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@mipmap/logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.SafeTapAndroid"
         tools:targetApi="31">
@@ -28,26 +30,32 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.SafeTapAndroid">
+            android:theme="@style/Theme.SafeTapAndroid"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <activity android:name=".ui.MapsActivity" />
+
+
+
+        <activity android:name=".ui.MapsActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <activity android:name=".ui.SOSActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
-        <activity android:name=".ui.NotificationActivity" />
+        <activity android:name=".ui.NotificationActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <receiver android:name=".ui.CallAlarmReceiver" />
         <activity
             android:name=".ui.fakecall.FakeIncomingCallActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen" />
 
-        <activity android:name=".ui.fakecall.FakeCallSchedulerActivity"/>
+        <activity android:name=".ui.fakecall.FakeCallSchedulerActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <activity android:name=".ui.fakecall.FakeCallAnsweredActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"/>
     </application>

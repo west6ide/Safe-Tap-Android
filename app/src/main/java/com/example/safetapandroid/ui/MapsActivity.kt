@@ -9,6 +9,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.location.Geocoder
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -50,7 +51,11 @@ import com.google.android.libraries.places.widget.listener.PlaceSelectionListene
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.Spinner
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -58,6 +63,7 @@ import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.safetapandroid.network.DangerousPerson
 import com.example.safetapandroid.ui.fakecall.FakeCallSchedulerActivity
+import com.google.android.libraries.places.api.model.RectangularBounds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -97,6 +103,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
+        findViewById<ImageButton>(R.id.btn_show_search).visibility = View.GONE
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -108,7 +115,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         placesClient = Places.createClient(this)
 
-        searchView = findViewById(R.id.search_location)
 //        setupSearchView()
 
         locationCallback = object : LocationCallback() {
@@ -117,7 +123,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
-        findViewById<Button>(R.id.sign_out_button).setOnClickListener { signOut() }
+        findViewById<LinearLayout>(R.id.sign_out_button).setOnClickListener { signOut() }
         findViewById<ImageButton>(R.id.btn_sos).setOnClickListener {
             if (currentLatitude != 0.0 && currentLongitude != 0.0) {
                 val intent = Intent(this, SOSActivity::class.java)
@@ -155,6 +161,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
+        findViewById<ImageButton>(R.id.btn_show_search).setOnClickListener {
+            findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.VISIBLE
+            findViewById<ConstraintLayout>(R.id.route_info_panel).visibility = View.GONE
+            it.visibility = View.GONE // скрыть саму кнопку
+        }
+
+
         // Добавим обработку кнопки для показа/скрытия безопасных мест
         findViewById<ImageButton>(R.id.btn_nearby_safe_places).setOnClickListener {
             if (isSafePlacesVisible) {
@@ -169,15 +182,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
 
-        val searchView = findViewById<SearchView>(R.id.search_location)
-        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-            override fun onQueryTextSubmit(query: String?): Boolean {
-                query?.let { searchLocation(it) }
-                return false
-            }
-
-            override fun onQueryTextChange(newText: String?): Boolean = false
-        })
+//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+//            override fun onQueryTextSubmit(query: String?): Boolean {
+//                query?.let { searchLocation(it) }
+//                return false
+//            }
+//
+//            override fun onQueryTextChange(newText: String?): Boolean = false
+//        })
 
 //        setupAutocomplete()
 
@@ -186,7 +198,89 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         sosLongitude = intent.getDoubleExtra("notification_longitude", 0.0)
 
         isFromNotification = sosLatitude != 0.0 && sosLongitude != 0.0
+
+        val geocoder = Geocoder(this)
+        val addresses = geocoder.getFromLocation(currentLatitude, currentLongitude, 1)
+        val cityName = addresses?.firstOrNull()?.locality ?: ""
+
+        val spinner = findViewById<Spinner>(R.id.transport_mode_spinner)
+        val btnBuildRoute = findViewById<Button>(R.id.btn_build_route)
+
+// Настраиваем Spinner
+        val adapter = ArrayAdapter.createFromResource(
+            this,
+            R.array.transport_modes,
+            android.R.layout.simple_spinner_item
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+
+        btnBuildRoute.setOnClickListener {
+            val mode = when (spinner.selectedItem.toString()) {
+                "Авто" -> "driving"
+                "Пешком" -> "walking"
+                "Общественный транспорт" -> "transit"
+                else -> "driving"
+            }
+
+            val destination = destinationMarker?.position
+            if (currentLocation != null && destination != null) {
+                drawRoute(currentLocation!!, destination, mode)
+            } else {
+                Toast.makeText(this, "Маршрут не может быть построен", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+
+        setupAutocompleteSearch(cityName)
+
     }
+
+    private fun setupAutocompleteSearch(city: String) {
+        val autocompleteFragment = supportFragmentManager
+            .findFragmentById(R.id.place_autocomplete_fragment) as AutocompleteSupportFragment
+
+        autocompleteFragment.setPlaceFields(
+            listOf(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.LAT_LNG
+            )
+        )
+
+        val center = LatLng(currentLatitude, currentLongitude)
+        val radiusInMeters = 20000.0 // 20 км
+
+        val bounds = RectangularBounds.newInstance(
+            LatLng(center.latitude - radiusInMeters / 111000, center.longitude - radiusInMeters / 111000),
+            LatLng(center.latitude + radiusInMeters / 111000, center.longitude + radiusInMeters / 111000)
+        )
+        autocompleteFragment.setLocationBias(bounds)
+
+        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
+            override fun onPlaceSelected(place: Place) {
+                val latLng = place.latLng
+                if (latLng != null) {
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                    destinationMarker?.remove()
+                    destinationMarker = mMap.addMarker(
+                        MarkerOptions().position(latLng).title(place.name)
+                    )
+
+                    findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+                }
+            }
+
+            override fun onError(status: com.google.android.gms.common.api.Status) {
+                Log.e("MapsActivity", "Ошибка выбора места: $status")
+                Toast.makeText(this@MapsActivity, "Ошибка поиска: $status", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+
+
+
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     override fun onMapReady(googleMap: GoogleMap) {
@@ -208,6 +302,31 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         } else {
             startLocationUpdates() // Только если SOS координаты не переданы
         }
+
+        mMap.setOnMapClickListener { latLng ->
+            destinationMarker?.remove()
+            destinationMarker = mMap.addMarker(
+                MarkerOptions()
+                    .position(latLng)
+                    .title("Пункт назначения")
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
+            )
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+
+            // Скрыть нижнее меню
+            findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+
+// Показать кнопку поиска обратно
+            findViewById<ImageButton>(R.id.btn_show_search).visibility = View.VISIBLE
+
+// Построить маршрут и показать панель
+            val destination = destinationMarker?.position
+            if (currentLocation != null && destination != null) {
+                drawRoute(currentLocation!!, destination, "driving") // default mode
+            }
+
+        }
+
 
         startEmergencyLocationUpdates()
     }
@@ -507,9 +626,11 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
 
-    private fun drawRoute(start: Location, destination: LatLng) {
-        val url =
-            "https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${destination.latitude},${destination.longitude}&key=AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E"
+    private fun drawRoute(start: Location, destination: LatLng, mode: String) {
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=${start.latitude},${start.longitude}" +
+                "&destination=${destination.latitude},${destination.longitude}" +
+                "&mode=$mode&key=AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E"
 
         val request = Request.Builder().url(url).build()
 
@@ -524,20 +645,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     val routes = json.getJSONArray("routes")
                     if (routes.length() > 0) {
                         val points = mutableListOf<LatLng>()
-                        val stepsArray = routes.getJSONObject(0)
-                            .getJSONArray("legs")
-                            .getJSONObject(0)
-                            .getJSONArray("steps")
+                        val leg = routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0)
+                        val distanceText = leg.getJSONObject("distance").getString("text")
+                        val durationText = leg.getJSONObject("duration").getString("text")
+                        val endAddress = leg.getString("end_address")
 
+                        val stepsArray = leg.getJSONArray("steps")
                         for (i in 0 until stepsArray.length()) {
                             val step = stepsArray.getJSONObject(i)
-                            val startLocation = step.getJSONObject("start_location")
-                            points.add(
-                                LatLng(
-                                    startLocation.getDouble("lat"),
-                                    startLocation.getDouble("lng")
-                                )
-                            )
+                            val polyline = step.getJSONObject("polyline").getString("points")
+                            points.addAll(decodePolyline(polyline))
                         }
 
                         runOnUiThread {
@@ -547,12 +664,92 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                                     .width(8f)
                                     .color(ContextCompat.getColor(this@MapsActivity, R.color.teal_700))
                             )
+                            showRoutePanel(endAddress, durationText, distanceText)
                         }
                     }
                 }
             }
         })
     }
+
+    private fun decodePolyline(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+
+            val latLng = LatLng(lat / 1E5, lng / 1E5)
+            poly.add(latLng)
+        }
+
+        return poly
+    }
+
+    private fun showRoutePanel(destination: String, duration: String, distance: String) {
+        Log.d("ROUTE_PANEL", "showRoutePanel called")
+        val panel = findViewById<View>(R.id.route_info_panel)
+        panel.visibility = View.VISIBLE
+        // Скрыть нижнее меню и показать кнопку
+        findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+        findViewById<ImageButton>(R.id.btn_show_search).visibility = View.VISIBLE
+
+
+        findViewById<TextView>(R.id.route_destination_name).text = destination
+        findViewById<TextView>(R.id.route_duration).text = "$duration • $distance"
+        findViewById<Button>(R.id.btn_open_google_maps).setOnClickListener {
+            if (currentLocation != null && destinationMarker != null) {
+                val startLat = currentLocation!!.latitude
+                val startLng = currentLocation!!.longitude
+                val destLat = destinationMarker!!.position.latitude
+                val destLng = destinationMarker!!.position.longitude
+
+                val travelMode = when (findViewById<Spinner>(R.id.transport_mode_spinner).selectedItem.toString()) {
+                    "Авто" -> "driving"
+                    "Пешком" -> "walking"
+                    "Общественный транспорт" -> "transit"
+                    else -> "driving"
+                }
+
+                val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$destLat,$destLng&travelmode=$travelMode")
+                val intent = Intent(Intent.ACTION_VIEW, uri)
+                intent.setPackage("com.google.android.apps.maps")
+
+                if (intent.resolveActivity(packageManager) != null) {
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, "Google Maps не установлены", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        findViewById<ImageButton>(R.id.btn_show_search).visibility = View.VISIBLE
+        findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+
+    }
+
+
 
     private fun signOut() {
         val prefs = getSharedPreferences("auth_prefs", MODE_PRIVATE)

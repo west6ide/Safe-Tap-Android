@@ -22,19 +22,11 @@
         android:hint="Номер"
         android:minHeight="48dp" />
 
-    <EditText
-        android:id="@+id/input_photo_url"
+    <Spinner
+        android:id="@+id/role_spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Ссылка на фото"
-        android:minHeight="48dp" />
-
-    <Button
-        android:id="@+id/button_select_audio"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Выбрать аудио"
-        android:layout_marginTop="8dp"/>
+        android:layout_marginTop="12dp" />
 
     <Button
         android:id="@+id/button_pick_time"

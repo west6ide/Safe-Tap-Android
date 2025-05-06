@@ -7,8 +7,10 @@ import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -26,13 +28,12 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
 
     private lateinit var nameInput: EditText
     private lateinit var numberInput: EditText
-    private lateinit var photoUrlInput: EditText
     private lateinit var timeButton: Button
     private lateinit var fakeCallsRecyclerView: RecyclerView
     private lateinit var adapter: FakeCallAdapter
     private lateinit var emptyText: TextView
-    private lateinit var selectAudioButton: Button
     private var selectedAudioResId: Int? = null
+    private lateinit var roleSpinner: Spinner
 
     private var scheduledHour = 0
     private var scheduledMinute = 0
@@ -45,14 +46,10 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
 
         nameInput = findViewById(R.id.input_name)
         numberInput = findViewById(R.id.input_number)
-        photoUrlInput = findViewById(R.id.input_photo_url)
         timeButton = findViewById(R.id.button_pick_time)
         fakeCallsRecyclerView = findViewById(R.id.fake_calls_list)
         emptyText = findViewById(R.id.empty_text)
-        selectAudioButton = findViewById(R.id.button_select_audio)
-        selectAudioButton.setOnClickListener {
-            showAudioSelectionDialog()
-        }
+        roleSpinner = findViewById(R.id.role_spinner)
 
 
         adapter = FakeCallAdapter(
@@ -74,6 +71,10 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
                 scheduleFakeCall()
             }, now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), true).show()
         }
+        roleSpinner = findViewById(R.id.role_spinner)
+        val roles = listOf("Мама", "Брат", "Парень")
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, roles)
+        roleSpinner.adapter = adapter
     }
 
     private fun showAudioSelectionDialog() {
@@ -110,20 +111,18 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
     private fun scheduleFakeCall() {
         val name = nameInput.text.toString()
         val number = numberInput.text.toString()
-        val photoUrl = photoUrlInput.text.toString()
 
         if (name.isBlank() || number.isBlank()) {
             Toast.makeText(this, "Заполните имя и номер", Toast.LENGTH_SHORT).show()
             return
         }
-
+        val selectedRole = roleSpinner.selectedItem.toString()
         val fakeCall = FakeCall(
             name = name,
             number = number,
-            photoUrl = photoUrl,
             hour = scheduledHour,
             minute = scheduledMinute,
-            audioResId = selectedAudioResId
+            role = selectedRole
         )
 
         fakeCalls.add(fakeCall)
@@ -136,7 +135,7 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
         val intent = Intent(this, CallAlarmReceiver::class.java).apply {
             putExtra("name", name)
             putExtra("number", number)
-            putExtra("photoUrl", photoUrl)
+            putExtra("role", selectedRole)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -157,13 +156,11 @@ class FakeCallSchedulerActivity : AppCompatActivity() {
         // Очистить поля
         nameInput.text.clear()
         numberInput.text.clear()
-        photoUrlInput.text.clear()
     }
 
     private fun editFakeCall(fakeCall: FakeCall) {
         nameInput.setText(fakeCall.name)
         numberInput.setText(fakeCall.number)
-        photoUrlInput.setText(fakeCall.photoUrl)
         scheduledHour = fakeCall.hour
         scheduledMinute = fakeCall.minute
 

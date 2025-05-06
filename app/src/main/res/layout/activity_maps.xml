@@ -25,7 +25,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Кнопка "Опции" -->
+        <!-- Кнопки верхние -->
         <ImageButton
             android:id="@+id/btn_options"
             android:layout_width="60dp"
@@ -33,40 +33,24 @@
             android:layout_marginStart="24dp"
             android:layout_marginTop="32dp"
             android:background="@android:color/transparent"
-            android:contentDescription="Profile Icon"
+            android:contentDescription="Options"
             android:src="@drawable/ic_options"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:ignore="TouchTargetSizeCheck" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Кнопка "Уведомления" -->
         <ImageButton
             android:id="@+id/btn_notifications"
             android:layout_width="60dp"
             android:layout_height="60dp"
-            android:layout_marginTop="32dp"
             android:layout_marginEnd="24dp"
+            android:layout_marginTop="32dp"
             android:background="@android:color/transparent"
             android:contentDescription="Notifications"
             android:src="@drawable/ic_notifications"
-            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:ignore="TouchTargetSizeCheck" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Кнопка "Выйти" -->
-        <Button
-            android:id="@+id/sign_out_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            android:background="@color/black"
-            android:text="Sign Out"
-            android:textColor="@android:color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/btn_notifications" />
-
-        <!-- Кнопка "Моя локация" -->
+        <!-- Кнопки карты -->
         <ImageButton
             android:id="@+id/btn_my_location"
             android:layout_width="60dp"
@@ -77,10 +61,8 @@
             android:contentDescription="My Location"
             android:src="@drawable/ic_my_location"
             app:layout_constraintBottom_toTopOf="@id/bottom_menu"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:ignore="TouchTargetSizeCheck" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Кнопка "Безопасные места" -->
         <ImageButton
             android:id="@+id/btn_nearby_safe_places"
             android:layout_width="60dp"
@@ -91,8 +73,7 @@
             android:contentDescription="Safe Places"
             android:src="@drawable/ic_safe"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/bottom_menu"
-            tools:ignore="TouchTargetSizeCheck" />
+            app:layout_constraintBottom_toTopOf="@id/bottom_menu" />
 
         <!-- Нижнее меню -->
         <androidx.constraintlayout.widget.ConstraintLayout
@@ -104,19 +85,33 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
-            <!-- Поисковая строка -->
-            <SearchView
-                android:id="@+id/search_location"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:background="@android:color/white"
-                android:iconifiedByDefault="false"
-                android:queryHint="Search location"
-                tools:ignore="MissingConstraints" />
+            <ImageButton
+                android:id="@+id/btn_show_search"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_search"
+                android:background="@android:color/transparent"
+                android:contentDescription="Показать поиск"
+                app:layout_constraintBottom_toTopOf="@id/bottom_menu"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Кнопки снизу -->
+
+            <!-- Поиск -->
+            <fragment
+                android:id="@+id/place_autocomplete_fragment"
+                android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- Нижние кнопки -->
             <ImageButton
                 android:id="@+id/btn_emergency_contacts"
                 android:layout_width="55dp"
@@ -125,7 +120,7 @@
                 android:background="@android:color/transparent"
                 android:contentDescription="Emergency Contacts"
                 android:src="@drawable/ic_emergency_contacts"
-                app:layout_constraintTop_toBottomOf="@id/search_location"
+                app:layout_constraintTop_toBottomOf="@id/place_autocomplete_fragment"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent" />
 
@@ -138,7 +133,7 @@
                 android:background="@android:color/transparent"
                 android:contentDescription="SOS"
                 android:src="@drawable/ic_sos"
-                app:layout_constraintTop_toBottomOf="@id/search_location"
+                app:layout_constraintTop_toBottomOf="@id/place_autocomplete_fragment"
                 app:layout_constraintStart_toEndOf="@id/btn_emergency_contacts"
                 app:layout_constraintEnd_toStartOf="@id/btn_fake_call"
                 app:layout_constraintBottom_toBottomOf="parent" />
@@ -151,15 +146,80 @@
                 android:background="@android:color/transparent"
                 android:contentDescription="Fake Call"
                 android:src="@drawable/ic_fake_call"
-                app:layout_constraintTop_toBottomOf="@id/search_location"
+                app:layout_constraintTop_toBottomOf="@id/place_autocomplete_fragment"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
+        <!-- Панель маршрута -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/route_info_panel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            android:background="@android:color/white"
+            android:visibility="gone"
+            android:elevation="8dp"
+            android:padding="16dp"
+            app:layout_constraintBottom_toTopOf="@id/bottom_menu"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+
+            <TextView
+                android:id="@+id/route_destination_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Выбранное место"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <TextView
+                android:id="@+id/route_duration"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textSize="14sp"
+                android:layout_marginTop="12dp"
+                app:layout_constraintTop_toBottomOf="@id/route_destination_name"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Spinner
+                android:id="@+id/transport_mode_spinner"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:layout_constraintTop_toBottomOf="@id/route_duration"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/btn_build_route"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Показать маршрут"
+                android:layout_marginTop="12dp"
+                app:layout_constraintTop_toBottomOf="@id/transport_mode_spinner"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+            <Button
+                android:id="@+id/btn_open_google_maps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Открыть в Google Maps"
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toBottomOf="@id/btn_build_route"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Боковое меню -->
-    <include
-        layout="@layout/nav_drawer"/>
+    <!-- Меню -->
+    <include layout="@layout/nav_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
