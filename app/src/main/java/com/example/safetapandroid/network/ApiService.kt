@@ -1,5 +1,6 @@
 package com.example.safetapandroid.network
 
+import com.google.gson.annotations.SerializedName
 import okhttp3.Response
 import okhttp3.ResponseBody
 import retrofit2.http.Body
@@ -44,6 +45,24 @@ data class LiveLocation(
     val updatedAt: String,
     val name: String // 👈 добавляем имя
 )
+
+data class EmergencyContact(
+    @SerializedName("phone_number")
+    val phone: String,
+
+    @SerializedName("contact_id")
+    val contactId: Int,
+
+    @SerializedName("user_id")
+    val userId: Int,
+
+    @SerializedName("id")
+    val id: Int,
+
+    @SerializedName("created_at")
+    val createdAt: String
+)
+
 
 
 data class FakeCall(
@@ -102,6 +121,30 @@ interface AuthApi {
     fun getDangerousPlaces(
         @Header("Authorization") token: String
     ): Call<List<DangerousPerson>>
+
+    @POST("/contacts/add")
+    fun addEmergencyContact(
+        @Header("Authorization") token: String,
+        @Body contact: AddContactRequest
+    ): Call<ResponseBody>
+
+    data class AddContactRequest(
+        @SerializedName("phone_number") val phoneNumber: String
+    )
+
+    @GET("/contacts")
+    fun getEmergencyContacts(@Header("Authorization") token: String): Call<List<EmergencyContact>>
+
+    @POST("/contacts/delete")
+    fun deleteEmergencyContact(
+        @Header("Authorization") token: String,
+        @Body request: Map<String, String>
+    ): Call<ResponseBody>
+
+
+
+
+
 
 
 //    @POST("fake-call")

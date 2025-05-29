@@ -51,6 +51,7 @@ import com.google.android.libraries.places.widget.listener.PlaceSelectionListene
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -110,6 +111,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+
+
         if (!Places.isInitialized()) {
             Places.initialize(applicationContext, "AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E")
         }
@@ -144,6 +147,12 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             startActivity(Intent(this, NotificationActivity::class.java))
         }
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
+        findViewById<LinearLayout>(R.id.location_access_option).setOnClickListener {
+            val intent = Intent(this, EmergencyContactsActivity::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
         val btnOptions = findViewById<ImageButton>(R.id.btn_options)
 
         btnOptions.setOnClickListener {
@@ -203,38 +212,33 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val addresses = geocoder.getFromLocation(currentLatitude, currentLongitude, 1)
         val cityName = addresses?.firstOrNull()?.locality ?: ""
 
-        val spinner = findViewById<Spinner>(R.id.transport_mode_spinner)
-        val btnBuildRoute = findViewById<Button>(R.id.btn_build_route)
 
 // Настраиваем Spinner
-        val adapter = ArrayAdapter.createFromResource(
-            this,
-            R.array.transport_modes,
-            android.R.layout.simple_spinner_item
-        )
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinner.adapter = adapter
-
-        btnBuildRoute.setOnClickListener {
-            val mode = when (spinner.selectedItem.toString()) {
-                "Авто" -> "driving"
-                "Пешком" -> "walking"
-                "Общественный транспорт" -> "transit"
-                else -> "driving"
-            }
-
-            val destination = destinationMarker?.position
-            if (currentLocation != null && destination != null) {
-                drawRoute(currentLocation!!, destination, mode)
-            } else {
-                Toast.makeText(this, "Маршрут не может быть построен", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-
         setupAutocompleteSearch(cityName)
 
+        findViewById<Spinner>(R.id.transport_mode_spinner).onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                    val destination = destinationMarker?.position
+                    if (currentLocation != null && destination != null) {
+                        drawRoute(currentLocation!!, destination, getSelectedTravelMode())
+                    }
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>) {}
+            }
+
+
     }
+    private fun getSelectedTravelMode(): String {
+        val spinner = findViewById<Spinner>(R.id.transport_mode_spinner)
+        return when (spinner.selectedItem.toString()) {
+            "Пешком" -> "walking"
+            "Общественный транспорт" -> "transit"
+            else -> "driving"
+        }
+    }
+
 
     private fun setupAutocompleteSearch(city: String) {
         val autocompleteFragment = supportFragmentManager
@@ -322,7 +326,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 // Построить маршрут и показать панель
             val destination = destinationMarker?.position
             if (currentLocation != null && destination != null) {
-                drawRoute(currentLocation!!, destination, "driving") // default mode
+                drawRoute(currentLocation!!, destination, getSelectedTravelMode())
+                // default mode
             }
 
         }
@@ -709,25 +714,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun showRoutePanel(destination: String, duration: String, distance: String) {
-        Log.d("ROUTE_PANEL", "showRoutePanel called")
         val panel = findViewById<View>(R.id.route_info_panel)
         panel.visibility = View.VISIBLE
-        // Скрыть нижнее меню и показать кнопку
         findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
         findViewById<ImageButton>(R.id.btn_show_search).visibility = View.VISIBLE
 
+        val modeText = when (findViewById<Spinner>(R.id.transport_mode_spinner).selectedItem.toString()) {
+            "Пешком" -> "Пешком"
+            "Общественный транспорт" -> "Общественный транспорт"
+            else -> "Автомобиль"
+        }
 
-        findViewById<TextView>(R.id.route_destination_name).text = destination
-        findViewById<TextView>(R.id.route_duration).text = "$duration • $distance"
-        findViewById<Button>(R.id.btn_open_google_maps).setOnClickListener {
+        findViewById<TextView>(R.id.route_mode_title).text = modeText
+        findViewById<TextView>(R.id.route_time_distance).text = "$duration ($distance)"
+        findViewById<TextView>(R.id.route_additional_info).text = "Самый быстрый маршрут с учетом пробок"
+
+        findViewById<Button>(R.id.btn_navigate).setOnClickListener {
             if (currentLocation != null && destinationMarker != null) {
                 val startLat = currentLocation!!.latitude
                 val startLng = currentLocation!!.longitude
                 val destLat = destinationMarker!!.position.latitude
                 val destLng = destinationMarker!!.position.longitude
 
-                val travelMode = when (findViewById<Spinner>(R.id.transport_mode_spinner).selectedItem.toString()) {
-                    "Авто" -> "driving"
+                val travelMode = when (modeText) {
                     "Пешком" -> "walking"
                     "Общественный транспорт" -> "transit"
                     else -> "driving"
@@ -744,9 +753,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
         }
-        findViewById<ImageButton>(R.id.btn_show_search).visibility = View.VISIBLE
-        findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
 
+        findViewById<Button>(R.id.btn_share_route).setOnClickListener {
+            val text = "Маршрут: $duration ($distance) до $destination"
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, text)
+                type = "text/plain"
+            }
+            startActivity(Intent.createChooser(shareIntent, "Поделиться маршрутом через"))
+        }
     }
 
 

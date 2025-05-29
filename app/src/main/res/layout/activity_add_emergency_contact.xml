@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@android:color/white"
+    android:padding="20dp">
+
+    <!-- Верхняя панель с кнопкой назад и заголовком -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="0dp">
+
+        <ImageButton
+            android:id="@+id/back_button"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back_arrow"
+            android:scaleType="center"
+            android:padding="8dp"
+            android:layout_marginStart="12dp"
+            android:contentDescription="Back" />
+
+
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Emergency Contacts"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true" />
+    </RelativeLayout>
+
+    <!-- Поле ввода с флагом, кодом и кнопкой выбора контакта -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_input"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="12dp"
+        android:layout_marginTop="40dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="16dp"
+            android:src="@drawable/kaz_flag" />
+
+        <TextView
+            android:layout_marginStart="6dp"
+            android:text="+7"
+            android:textSize="20sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <View
+            android:layout_marginHorizontal="8dp"
+            android:layout_width="1dp"
+            android:layout_height="24dp"
+            android:background="#CCCCCC" />
+
+        <EditText
+            android:id="@+id/input_phone"
+            android:layout_width="3dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Phone Number"
+            android:inputType="phone"
+            android:minHeight="48dp"
+            android:textSize="20sp" />
+
+        <ImageButton
+            android:id="@+id/btn_pick_contact"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Pick contact"
+            android:src="@drawable/ic_contact_picker"
+            tools:ignore="TouchTargetSizeCheck" />
+    </LinearLayout>
+
+    <!-- Кнопка добавления -->
+    <Button
+        android:id="@+id/btn_add_contact"
+        android:layout_marginTop="30dp"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Contact"
+        android:backgroundTint="@color/teal_700"
+        android:textColor="@android:color/white"
+        android:paddingHorizontal="40dp" />
+</LinearLayout>

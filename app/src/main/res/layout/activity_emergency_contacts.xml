@@ -1,0 +1,96 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:background="@android:color/white">
+
+    <!-- Верхняя панель -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <ImageButton
+            android:id="@+id/back_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back_arrow"
+            tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Emergency Contacts"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:layout_height="wrap_content" />
+
+        <ImageButton
+            android:id="@+id/add_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_add_circle"
+            tools:ignore="SpeakableTextPresentCheck,TouchTargetSizeCheck" />
+    </LinearLayout>
+
+    <!-- Контакты и счетчик -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="62dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Contacts"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/contact_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="20dp"
+            android:text="6/9"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/edit_mode_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Edit"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_edit_contacts"
+            tools:ignore="TouchTargetSizeCheck" />
+    </LinearLayout>
+
+
+    <!-- RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_contacts"
+        android:layout_width="match_parent"
+        android:layout_height="400dp"
+        android:paddingTop="8dp"
+        tools:ignore="SpeakableTextPresentCheck" />
+
+
+    <!-- Описание -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="You can add and remove emergency\ncall contacts and send them your location."
+        android:textSize="14sp"
+        android:textColor="#999999"
+        android:gravity="center"
+        android:paddingTop="12dp" />
+</LinearLayout>

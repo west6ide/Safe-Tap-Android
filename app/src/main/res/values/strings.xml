@@ -11,4 +11,5 @@
         <item>Пешком</item>
         <item>Общественный транспорт</item>
     </string-array>
+    <string name="choose_transport_mode">Выберите способ передвижения</string>
 </resources>

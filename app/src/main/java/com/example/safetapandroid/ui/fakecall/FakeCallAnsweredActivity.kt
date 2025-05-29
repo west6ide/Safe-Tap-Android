@@ -7,7 +7,6 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
-import android.speech.tts.Voice
 import android.util.Log
 import android.view.View
 import android.widget.ImageButton
@@ -33,7 +32,7 @@ class FakeCallAnsweredActivity : AppCompatActivity() {
     private val client = OkHttpClient()
     private lateinit var role: String
 
-    private val apiKey = "e68c1c6d72c14af8ad51f126d7c445ab"
+    private val apiKey = "4472bc070e104bbeb8d1e6f922538edd"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -149,19 +148,19 @@ class FakeCallAnsweredActivity : AppCompatActivity() {
     private fun initTextToSpeech() {
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
-                tts.language = Locale("ru", "RU")
-                val voices = tts.voices
-                var preferredVoice: Voice? = null
-                for (voice in voices) {
-                    Log.d("TTS", "Voice: ${voice.name}, Locale: ${voice.locale}, Gender: ${voice.features}")
+                val result = tts.setLanguage(Locale("ru", "RU"))
+                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                    Log.e("TTS", "Язык не поддерживается")
                 }
-                preferredVoice = when (role.lowercase(Locale.ROOT)) {
-                    "мама" -> voices.find { it.name.contains("female", true) || it.name.contains("ru", true) }
-                    "брат" -> voices.find { it.name.contains("male", true) || it.name.contains("ru", true) }
-                    "парень" -> voices.find { it.name.contains("male", true) && it.name.contains("ru", true) }
-                    else -> voices.find { it.locale.language == "ru" }
+                // Установка первого доступного голоса как fallback
+                val voice = tts.voices.firstOrNull { it.locale.language == "ru" } ?: tts.defaultVoice
+                if (voice != null) {
+                    tts.voice = voice
+                } else {
+                    Log.w("TTS", "Голос не найден, используется голос по умолчанию")
                 }
-                preferredVoice?.let { tts.voice = it }
+            } else {
+                Log.e("TTS", "Инициализация TTS не удалась")
             }
         }
     }

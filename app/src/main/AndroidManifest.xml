@@ -58,5 +58,9 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
         <activity android:name=".ui.fakecall.FakeCallAnsweredActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar.FullScreen"/>
+        <activity android:name=".ui.AddEmergencyContactActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+        <activity android:name=".ui.EmergencyContactsActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
     </application>
 </manifest>
