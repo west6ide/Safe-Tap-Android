@@ -53,6 +53,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Spinner
@@ -63,8 +64,10 @@ import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.safetapandroid.network.DangerousPerson
+import com.example.safetapandroid.network.UserProfile
 import com.example.safetapandroid.ui.fakecall.FakeCallSchedulerActivity
 import com.google.android.libraries.places.api.model.RectangularBounds
+import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -100,11 +103,34 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var profileName: TextView
+    private lateinit var profilePhone: TextView
+    private lateinit var profileEmail: TextView
+
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
         findViewById<ImageButton>(R.id.btn_show_search).visibility = View.GONE
+
+
+
+        // 1. DrawerLayout (родительский layout)
+        drawerLayout = findViewById(R.id.drawer_layout)
+
+        // 2. Получаем View навигационного drawer'а
+        val navDrawer: View = findViewById<DrawerLayout>(R.id.nav_drawer)
+        profileName = navDrawer.findViewById(R.id.profile_name)
+        profilePhone = navDrawer.findViewById(R.id.profile_phone)
+        profileEmail = navDrawer.findViewById(R.id.profile_email)
+        loadUserProfile()
+
+
+
+
 
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -227,9 +253,33 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
-
-
     }
+
+
+
+    private fun loadUserProfile() {
+        val token = UserManager.getAuthToken(this) ?: return
+
+        val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
+        api.getProfile("Bearer $token").enqueue(object : retrofit2.Callback<UserProfile> {
+            override fun onResponse(call: Call<UserProfile>, response: Response<UserProfile>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val user = response.body()!!
+                    findViewById<TextView>(R.id.profile_name).text = user.fullName
+                    findViewById<TextView>(R.id.profile_phone).text = user.phoneNumber
+                    findViewById<TextView>(R.id.profile_email).text = user.email
+                } else {
+                    Log.e("API", "Profile load failed: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<UserProfile>, t: Throwable) {
+                Log.e("API", "Error loading profile", t)
+            }
+        })
+    }
+
+
     private fun getSelectedTravelMode(): String {
         val spinner = findViewById<Spinner>(R.id.transport_mode_spinner)
         return when (spinner.selectedItem.toString()) {

@@ -237,6 +237,8 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Меню -->
-    <include layout="@layout/nav_drawer" />
+    <include
+        android:id="@+id/nav_drawer"
+        layout="@layout/nav_drawer" />
 
 </androidx.drawerlayout.widget.DrawerLayout>

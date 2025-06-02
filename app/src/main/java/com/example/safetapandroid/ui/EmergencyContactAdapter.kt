@@ -14,31 +14,38 @@ import com.example.safetapandroid.network.EmergencyContact
 class EmergencyContactAdapter(
     private val contacts: List<EmergencyContact>,
     private val onDelete: (EmergencyContact) -> Unit
-) : RecyclerView.Adapter<EmergencyContactAdapter.ContactViewHolder>() {
+) : RecyclerView.Adapter<EmergencyContactAdapter.ViewHolder>() {
 
     var isEditMode = false
 
-    inner class ContactViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val avatar: ImageView = view.findViewById(R.id.contact_avatar)
-        val name: TextView = view.findViewById(R.id.contact_name)
-        val deleteIcon: ImageButton = view.findViewById(R.id.delete_contact)
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val imageProfile: ImageView = view.findViewById(R.id.image_profile)
+        val textName: TextView = view.findViewById(R.id.text_name)
+        val deleteButton: ImageButton = view.findViewById(R.id.delete_button)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_emergency_contact, parent, false)
-        return ContactViewHolder(view)
+            .inflate(R.layout.item_contact_tile, parent, false)
+        return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ContactViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val contact = contacts[position]
-        holder.name.text = "User ${contact.contactId}" // или подставить имя, если оно есть
-        holder.deleteIcon.visibility = if (isEditMode) View.VISIBLE else View.GONE
+        holder.textName.text = contact.name // или имя, если появится
 
-        holder.deleteIcon.setOnClickListener {
+        // Временное изображение
+        holder.imageProfile.setImageResource(R.drawable.ic_profile_placeholder)
+
+        // Показ/скрытие кнопки удаления
+        holder.deleteButton.visibility = if (isEditMode) View.VISIBLE else View.GONE
+
+        // Удаление
+        holder.deleteButton.setOnClickListener {
             onDelete(contact)
         }
     }
 
     override fun getItemCount(): Int = contacts.size
 }
+

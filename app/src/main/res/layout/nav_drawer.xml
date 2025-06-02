@@ -36,17 +36,18 @@
         android:textColor="#000000"/>
 
     <!-- Телефон -->
-    <TextView
-        android:id="@+id/profile_phone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="+7 777 777 77 77"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="4dp"
-        android:textColor="#555555"/>
 
-    <!-- Email -->
-    <TextView
+        <!-- Email -->
+        <TextView
+            android:id="@+id/profile_phone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="4dp"
+            android:text="+7 777 777 77 77"
+            android:textColor="#555555" />
+
+        <TextView
         android:id="@+id/profile_email"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -73,7 +74,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_options"/>
+            android:src="@drawable/ic_settings"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -95,7 +96,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_options"/>
+            android:src="@drawable/ic_contacts"/>
 
         <TextView
             android:layout_width="wrap_content"

@@ -1,15 +1,12 @@
 package com.example.safetapandroid.network
 
 import com.google.gson.annotations.SerializedName
-import okhttp3.Response
 import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.Call
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
-import retrofit2.http.Query
 
 // Модель запроса на вход
 data class LoginRequest(val phone: String, val password: String)
@@ -59,6 +56,9 @@ data class EmergencyContact(
     @SerializedName("id")
     val id: Int,
 
+    @SerializedName("name")
+    val name: String,
+
     @SerializedName("created_at")
     val createdAt: String
 )
@@ -82,6 +82,11 @@ data class DangerousPerson(
     val photoUrl: String
 )
 
+data class UserProfile(
+    @SerializedName("name") val fullName: String,
+    @SerializedName("phone") val phoneNumber: String,
+    val email: String
+)
 
 
 interface AuthApi {
@@ -129,7 +134,7 @@ interface AuthApi {
     ): Call<ResponseBody>
 
     data class AddContactRequest(
-        @SerializedName("phone_number") val phoneNumber: String
+        @SerializedName("phone_number") val phoneNumber: String,
     )
 
     @GET("/contacts")
@@ -141,6 +146,9 @@ interface AuthApi {
         @Body request: Map<String, String>
     ): Call<ResponseBody>
 
+
+    @GET("/profile")
+    fun getProfile(@Header("Authorization") token: String): Call<UserProfile>
 
 
 

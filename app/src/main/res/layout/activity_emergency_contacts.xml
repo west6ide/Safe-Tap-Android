@@ -1,17 +1,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="@android:color/white">
+    android:background="@android:color/white"
+    android:orientation="vertical"
+    android:padding="16dp">
 
     <!-- Верхняя панель -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingBottom="8dp">
 
         <ImageButton
@@ -24,12 +24,12 @@
 
         <TextView
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Emergency Contacts"
-            android:textStyle="bold"
             android:gravity="center"
+            android:text="Emergency Contacts"
             android:textSize="18sp"
-            android:layout_height="wrap_content" />
+            android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/add_button"
@@ -44,14 +44,14 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="62dp"
-        android:gravity="center_vertical">
+        android:layout_marginTop="32dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
         <TextView
             android:layout_width="0dp"
-            android:layout_weight="1"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Contacts"
             android:textStyle="bold" />
 
@@ -74,23 +74,21 @@
             tools:ignore="TouchTargetSizeCheck" />
     </LinearLayout>
 
-
     <!-- RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_contacts"
         android:layout_width="match_parent"
-        android:layout_height="400dp"
-        android:paddingTop="8dp"
-        tools:ignore="SpeakableTextPresentCheck" />
-
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="12dp" />
 
     <!-- Описание -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="You can add and remove emergency\ncall contacts and send them your location."
-        android:textSize="14sp"
-        android:textColor="#999999"
         android:gravity="center"
-        android:paddingTop="12dp" />
+        android:paddingTop="12dp"
+        android:text="You can add and remove emergency\ncall contacts and send them your location."
+        android:textColor="#999999"
+        android:textSize="14sp" />
 </LinearLayout>
