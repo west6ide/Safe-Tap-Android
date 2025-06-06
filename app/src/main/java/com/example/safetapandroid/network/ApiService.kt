@@ -83,10 +83,11 @@ data class DangerousPerson(
 )
 
 data class UserProfile(
-    @SerializedName("name") val fullName: String,
-    @SerializedName("phone") val phoneNumber: String,
-    val email: String
+    @SerializedName("Name") val fullName: String,
+    @SerializedName("Phone") val phoneNumber: String,
+    @SerializedName("Email") val email: String
 )
+
 
 
 interface AuthApi {
@@ -150,6 +151,12 @@ interface AuthApi {
     @GET("/profile")
     fun getProfile(@Header("Authorization") token: String): Call<UserProfile>
 
+
+    @POST("/profile/update")
+    fun updateProfile(
+        @Header("Authorization") token: String,
+        @Body profile: Map<String, String>
+    ): Call<ResponseBody>
 
 
 

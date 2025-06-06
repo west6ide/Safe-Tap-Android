@@ -123,12 +123,20 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // 2. Получаем View навигационного drawer'а
         val navDrawer: View = findViewById<DrawerLayout>(R.id.nav_drawer)
+
+        val profileImage = navDrawer.findViewById<ImageView>(R.id.profile_image)
+
+        profileImage.setOnClickListener {
+            val intent = Intent(this, ProfileActivity::class.java)
+            startActivity(intent)
+            drawerLayout.closeDrawer(GravityCompat.START)
+        }
+
+
         profileName = navDrawer.findViewById(R.id.profile_name)
         profilePhone = navDrawer.findViewById(R.id.profile_phone)
         profileEmail = navDrawer.findViewById(R.id.profile_email)
         loadUserProfile()
-
-
 
 
 

@@ -40,6 +40,6 @@
         android:layout_gravity="top|end"
         android:layout_margin="4dp"
         android:background="@android:color/transparent"
-        android:src="@drawable/ic_delete"
+        android:src="@drawable/ic_remove_red_circle"
         android:visibility="gone" />
 </FrameLayout>
