@@ -7,9 +7,11 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
+import android.os.AsyncTask
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -56,16 +58,23 @@ import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.Spinner
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.text.HtmlCompat
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.example.safetapandroid.network.CrimeReport
 import com.example.safetapandroid.network.DangerousPerson
+import com.example.safetapandroid.network.SharedRoute
 import com.example.safetapandroid.network.UserProfile
 import com.example.safetapandroid.ui.fakecall.FakeCallSchedulerActivity
+import com.google.android.gms.common.api.Status
 import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +84,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import okhttp3.ResponseBody
-
+import java.net.HttpURLConnection
+import java.net.URL
 
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -86,7 +96,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentMarker: Marker? = null
     private val client = OkHttpClient()
     private lateinit var placesClient: PlacesClient
-    private lateinit var searchView: SearchView
     private var destinationMarker: Marker? = null
     private var currentLocation: Location? = null
     private var currentLatitude: Double = 0.0
@@ -107,6 +116,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var profileName: TextView
     private lateinit var profilePhone: TextView
     private lateinit var profileEmail: TextView
+
+    data class NavigationStep(val instruction: String, val location: LatLng)
+
+    private val navigationSteps = mutableListOf<NavigationStep>()
+    private var currentStepIndex = 0
+
+    private var currentRoutePolyline: Polyline? = null
+    private var isNavigationStarted = false
+    private var drawnPolyline: Polyline? = null
+
+    private lateinit var autocompleteFragment: AutocompleteSupportFragment
+
+    private var isCrimesVisible = false
+    private val crimeMarkers = mutableListOf<Marker>()
+
+    //Dangerous persons and places
+    private val categoryCrimeMarkers = mutableListOf<Marker>()
+    private var isCategoryVisible = false
+
+
+    private var currentRouteDistance: String = ""
+    private var currentRouteDuration: String = ""
+
 
 
 
@@ -180,6 +212,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<ImageButton>(R.id.btn_notifications).setOnClickListener {
             startActivity(Intent(this, NotificationActivity::class.java))
         }
+
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
         findViewById<LinearLayout>(R.id.location_access_option).setOnClickListener {
             val intent = Intent(this, EmergencyContactsActivity::class.java)
@@ -189,19 +222,25 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         val btnOptions = findViewById<ImageButton>(R.id.btn_options)
 
+
+        //Dangerous persons and places
+        val panelDangerMain = findViewById<LinearLayout>(R.id.panel_danger_main)
+        val panelCategoriesScroll = findViewById<ScrollView>(R.id.panel_danger_categories)
+        val panelCategoriesLayout = findViewById<LinearLayout>(R.id.layout_danger_categories) // внутренний layout!
+
+        val btnDangerPlaces = findViewById<LinearLayout>(R.id.btn_danger_places)
+        val btnDangerPersons = findViewById<LinearLayout>(R.id.btn_danger_persons)
+
+        val btnCategoryRobbery = findViewById<LinearLayout>(R.id.btn_category_robbery)
+        val btnCategoryViolence = findViewById<LinearLayout>(R.id.btn_category_violence)
+        val btnCategoryMurder = findViewById<LinearLayout>(R.id.btn_category_murder)
+
         btnOptions.setOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
         findViewById<ImageButton>(R.id.btn_emergency_contacts).setOnClickListener {
-            if (isDangerousPlacesVisible) {
-                dangerousMarkers.forEach { it.remove() }
-                dangerousMarkers.clear()
-                isDangerousPlacesVisible = false
-            } else {
-                fetchDangerousPlacesFromApi {
-                    isDangerousPlacesVisible = true
-                }
-            }
+            panelDangerMain.visibility = View.VISIBLE
+            panelCategoriesScroll.visibility = View.GONE
         }
 
         findViewById<ImageButton>(R.id.btn_show_search).setOnClickListener {
@@ -225,17 +264,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
 
-//        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-//            override fun onQueryTextSubmit(query: String?): Boolean {
-//                query?.let { searchLocation(it) }
-//                return false
-//            }
-//
-//            override fun onQueryTextChange(newText: String?): Boolean = false
-//        })
-
-//        setupAutocomplete()
-
         // Получаем координаты из уведомления
         sosLatitude = intent.getDoubleExtra("notification_latitude", 0.0)
         sosLongitude = intent.getDoubleExtra("notification_longitude", 0.0)
@@ -250,17 +278,459 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 // Настраиваем Spinner
         setupAutocompleteSearch(cityName)
 
+        findViewById<Button>(R.id.btn_navigate).setOnClickListener {
+            findViewById<View>(R.id.route_info_panel).visibility = View.GONE
+            findViewById<View>(R.id.navigation_panel).visibility = View.VISIBLE
+            findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+
+            // Показать пошаговые инструкции
+            val instructions = navigationSteps.map { it.instruction }
+
+            val recycler = findViewById<RecyclerView>(R.id.recycler_step_instructions)
+            recycler.layoutManager = LinearLayoutManager(this)
+            recycler.adapter = InstructionAdapter(instructions)
+        }
+
+
+        findViewById<Button>(R.id.btn_cancel_route).setOnClickListener {
+            findViewById<View>(R.id.route_info_panel).visibility = View.GONE
+            findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.VISIBLE
+            drawnPolyline?.remove()
+            currentRoutePolyline?.remove()
+            destinationMarker?.remove()
+            drawnPolyline = null
+            destinationMarker = null
+            navigationSteps.clear()
+        }
+
+        findViewById<Button>(R.id.btn_cancel_navigation).setOnClickListener {
+            findViewById<View>(R.id.navigation_panel).visibility = View.GONE
+            findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.VISIBLE
+            drawnPolyline?.remove()
+            currentRoutePolyline?.remove()
+            destinationMarker?.remove()
+            drawnPolyline = null
+            destinationMarker = null
+            navigationSteps.clear()
+            navigationSteps.clear()
+        }
+
+
+
+
+// выбор "Places"
+        btnDangerPlaces.setOnClickListener {
+            panelDangerMain.visibility = View.GONE
+            panelCategoriesScroll.visibility = View.VISIBLE
+        }
+
+// выбор "Persons"
+        btnDangerPersons.setOnClickListener {
+            if (isDangerousPlacesVisible) {
+                dangerousMarkers.forEach { it.remove() }
+                dangerousMarkers.clear()
+                isDangerousPlacesVisible = false
+            } else {
+                fetchDangerousPlacesFromApi {
+                    isDangerousPlacesVisible = true
+                }
+            }
+            panelDangerMain.visibility = View.GONE
+            panelCategoriesScroll.visibility = View.GONE
+
+        }
+
+// обработка категорий
+        btnCategoryRobbery.setOnClickListener {
+            showCrimeMarkersByCategory("Кража")
+            panelCategoriesScroll.visibility = View.GONE
+        }
+
+        btnCategoryViolence.setOnClickListener {
+            showCrimeMarkersByCategory("Насилие")
+            panelCategoriesScroll.visibility = View.GONE
+        }
+
+        btnCategoryMurder.setOnClickListener {
+            showCrimeMarkersByCategory("Убийство")
+            panelCategoriesScroll.visibility = View.GONE
+        }
+
+
+
+
+
+        val autocompleteFragment = supportFragmentManager
+            .findFragmentById(R.id.place_autocomplete_fragment) as AutocompleteSupportFragment
+
+        autocompleteFragment.setPlaceFields(
+            listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG)
+        )
+
+        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
+            override fun onPlaceSelected(place: Place) {
+                val destinationLatLng = place.latLng
+                if (destinationLatLng != null) {
+                    destinationMarker?.remove()
+                    destinationMarker = mMap.addMarker(
+                        MarkerOptions().position(destinationLatLng).title(place.name)
+                    )
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(destinationLatLng, 15f))
+
+                    if (currentLocation != null) {
+                        drawRoute(currentLocation!!, destinationLatLng, getSelectedTravelMode())
+                    }
+
+                    findViewById<View>(R.id.route_info_panel).visibility = View.VISIBLE
+                    findViewById<ConstraintLayout>(R.id.bottom_menu).visibility = View.GONE
+                }
+            }
+
+            override fun onError(status: Status) {
+                Toast.makeText(this@MapsActivity, "Ошибка поиска: $status", Toast.LENGTH_SHORT).show()
+            }
+        })
+
+
+
+
+
+
         findViewById<Spinner>(R.id.transport_mode_spinner).onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
                     val destination = destinationMarker?.position
-                    if (currentLocation != null && destination != null) {
-                        drawRoute(currentLocation!!, destination, getSelectedTravelMode())
-                    }
                 }
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
+    }
+
+
+
+    private fun loadDangerousPersons() {
+        fetchDangerousPlacesFromApi {
+            isDangerousPlacesVisible = true
+        }
+    }
+
+
+    fun showCrimeMarkersByCategory(type: String) {
+        if (isCategoryVisible) {
+            // Скрываем маркеры
+            categoryCrimeMarkers.forEach { it.remove() }
+            categoryCrimeMarkers.clear()
+            isCategoryVisible = false
+            return
+        }
+
+        val apiService = RetrofitClient.getInstance(this).create(AuthApi::class.java)
+        apiService.getCrimeReports().enqueue(object : Callback<List<CrimeReport>> {
+            override fun onResponse(call: Call<List<CrimeReport>>, response: Response<List<CrimeReport>>) {
+                if (response.isSuccessful) {
+                    val filtered = response.body()?.filter {
+                        it.type.contains(type, ignoreCase = true)
+                    } ?: return
+
+                    for (crime in filtered) {
+                        val latLng = LatLng(crime.latitude, crime.longitude)
+                        val marker = mMap.addMarker(
+                            MarkerOptions()
+                                .position(latLng)
+                                .title(crime.type)
+                                .snippet("${crime.street} ${crime.house}")
+                                .icon(getCrimeIcon(type))
+                        )
+                        marker?.let { categoryCrimeMarkers.add(it) }
+                    }
+                    isCategoryVisible = true
+                }
+            }
+
+            override fun onFailure(call: Call<List<CrimeReport>>, t: Throwable) {
+                Toast.makeText(this@MapsActivity, "Ошибка загрузки преступлений", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+
+
+    private fun getCrimeIcon(type: String): BitmapDescriptor {
+        return when {
+            type.contains("Кража", ignoreCase = true) -> {
+                BitmapDescriptorFactory.fromBitmap(getBitmapFromDrawable(R.drawable.ic_robbery)!!)
+            }
+            type.contains("Насилие", ignoreCase = true) -> {
+                BitmapDescriptorFactory.fromBitmap(getBitmapFromDrawable(R.drawable.ic_violence)!!)
+            }
+            type.contains("Убийства", ignoreCase = true) -> {
+                BitmapDescriptorFactory.fromBitmap(getBitmapFromDrawable(R.drawable.ic_murder)!!)
+            }
+            else -> {
+                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+            }
+        }
+    }
+
+
+
+
+    private fun setupAutocompleteSearch() {
+        autocompleteFragment = supportFragmentManager
+            .findFragmentById(R.id.place_autocomplete_fragment) as AutocompleteSupportFragment
+
+        autocompleteFragment.setPlaceFields(listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG))
+        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
+            override fun onPlaceSelected(place: Place) {
+                val destination = place.latLng
+                if (destination != null) {
+                    drawRouteToDestination(destination)
+                    showRoutePanel()
+                }
+            }
+
+            override fun onError(status: Status) {
+                Toast.makeText(this@MapsActivity, "Ошибка: $status", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+
+    private val markerCrimeMap = mutableMapOf<Marker, CrimeReport>()
+
+    private fun fetchCrimeReports(onComplete: () -> Unit) {
+        val geocoder = Geocoder(this)
+        val addresses = try {
+            geocoder.getFromLocation(currentLatitude, currentLongitude, 1)
+        } catch (e: Exception) {
+            Log.e("CrimePlaces", "Ошибка определения города: ${e.message}")
+            Toast.makeText(this, "Ошибка определения города", Toast.LENGTH_SHORT).show()
+            null
+        }
+
+        val userCity = addresses?.firstOrNull()?.locality ?: addresses?.firstOrNull()?.subAdminArea ?: ""
+        if (userCity.isBlank()) return
+
+        val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
+        val icon = BitmapDescriptorFactory.fromBitmap(getBitmapFromDrawable(R.drawable.ic_danger_red)!!)
+
+        api.getCrimeReports().enqueue(object : Callback<List<CrimeReport>> {
+            override fun onResponse(call: Call<List<CrimeReport>>, response: Response<List<CrimeReport>>) {
+                if (!response.isSuccessful || response.body() == null) {
+                    Log.e("CrimePlaces", "Ошибка загрузки преступлений: ${response.code()}")
+                    return
+                }
+
+                val filteredCrimes = response.body()!!
+                    .filter { it.region.contains(userCity, ignoreCase = true) }
+
+                if (filteredCrimes.isEmpty()) {
+                    Log.d("CrimePlaces", "Нет преступлений для города: $userCity")
+                    return
+                }
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    for (crime in filteredCrimes) {
+                        try {
+                            val addressText = "${crime.street} ${crime.house}, ${crime.region}"
+                            val locations = geocoder.getFromLocationName(addressText, 1)
+
+                            if (!locations.isNullOrEmpty()) {
+                                val location = locations[0]
+                                val latLng = LatLng(location.latitude, location.longitude)
+
+                                withContext(Dispatchers.Main) {
+                                    val marker = mMap.addMarker(
+                                        MarkerOptions()
+                                            .position(latLng)
+                                            .title("${crime.type} (${crime.severity})")
+                                            .snippet("Улица: ${crime.street} ${crime.house}")
+                                            .icon(icon)
+                                    )
+                                    marker?.let {
+                                        crimeMarkers.add(it)
+                                        markerCrimeMap[it] = crime
+                                    }
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CrimePlaces", "Ошибка геокодинга: ${e.message}")
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        mMap.setOnInfoWindowClickListener { marker ->
+                            markerCrimeMap[marker]?.let { crime ->
+                                AlertDialog.Builder(this@MapsActivity)
+                                    .setTitle("Детали преступления")
+                                    .setMessage(
+                                        "Тип: ${crime.type}\n" +
+                                                "Статья: ${crime.article}\n" +
+                                                "Регион: ${crime.region}\n" +
+                                                "Дата: ${crime.crime_date}"
+                                    )
+                                    .setPositiveButton("Закрыть", null)
+                                    .show()
+                                true
+                            } ?: false
+                        }
+                        onComplete()
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<List<CrimeReport>>, t: Throwable) {
+                Log.e("CrimePlaces", "Ошибка загрузки: ${t.message}")
+                Toast.makeText(this@MapsActivity, "Ошибка загрузки преступлений", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+
+
+
+
+    private fun showRoutePanel() {
+        findViewById<View>(R.id.route_info_panel).visibility = View.VISIBLE
+        findViewById<View>(R.id.navigation_panel).visibility = View.GONE
+        findViewById<View>(R.id.bottom_menu).visibility = View.GONE
+    }
+
+
+
+    private fun drawRouteToDestination(destination: LatLng) {
+        if (::mMap.isInitialized) {
+            destinationMarker?.remove()
+            destinationMarker = mMap.addMarker(MarkerOptions().position(destination).title("Пункт назначения"))
+
+            val url = getDirectionsUrl(LatLng(currentLatitude, currentLongitude), destination)
+            FetchURL(this).execute(url)
+        }
+    }
+    private fun getDirectionsUrl(origin: LatLng, dest: LatLng): String {
+        val strOrigin = "origin=${origin.latitude},${origin.longitude}"
+        val strDest = "destination=${dest.latitude},${dest.longitude}"
+        val sensor = "sensor=false"
+        val mode = "mode=walking" // Или driving
+
+        val parameters = "$strOrigin&$strDest&$sensor&$mode"
+        val output = "json"
+
+        return "https://maps.googleapis.com/maps/api/directions/$output?$parameters&key=YOUR_API_KEY"
+    }
+    class FetchURL(val context: MapsActivity) : AsyncTask<String, Void, String>() {
+
+        override fun doInBackground(vararg params: String?): String {
+            val url = URL(params[0])
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connect()
+            val inputStream = connection.inputStream
+            val reader = inputStream.bufferedReader()
+            return reader.readText()
+        }
+
+        override fun onPostExecute(result: String?) {
+            super.onPostExecute(result)
+            val parserTask = ParserTask(context)
+            parserTask.execute(result)
+        }
+    }
+
+
+    class ParserTask(private val context: MapsActivity) : AsyncTask<String, Int, List<List<HashMap<String, String>>>>() {
+
+        override fun doInBackground(vararg jsonData: String): List<List<HashMap<String, String>>> {
+            val jObject: JSONObject = JSONObject(jsonData[0])
+            val parser = DirectionsJSONParser()
+            return parser.parse(jObject)
+        }
+
+        override fun onPostExecute(result: List<List<HashMap<String, String>>>) {
+            val polylineOptions = PolylineOptions()
+
+            for (path in result) {
+                val points = mutableListOf<LatLng>()
+                for (point in path) {
+                    val lat = point["lat"]!!.toDouble()
+                    val lng = point["lng"]!!.toDouble()
+                    points.add(LatLng(lat, lng))
+                }
+                polylineOptions.addAll(points)
+                polylineOptions.width(10f)
+                polylineOptions.color(Color.BLUE)
+            }
+
+            context.drawnPolyline?.remove()
+            context.drawnPolyline = context.mMap.addPolyline(polylineOptions)
+        }
+    }
+
+
+    class DirectionsJSONParser {
+
+        fun parse(jObject: JSONObject): List<List<HashMap<String, String>>> {
+            val routes = mutableListOf<List<HashMap<String, String>>>()
+            val jRoutes = jObject.getJSONArray("routes")
+
+            for (i in 0 until jRoutes.length()) {
+                val path = mutableListOf<HashMap<String, String>>()
+                val jLegs = jRoutes.getJSONObject(i).getJSONArray("legs")
+
+                for (j in 0 until jLegs.length()) {
+                    val jSteps = jLegs.getJSONObject(j).getJSONArray("steps")
+
+                    for (k in 0 until jSteps.length()) {
+                        val polyline = jSteps.getJSONObject(k).getJSONObject("polyline").getString("points")
+                        val list = decodePoly(polyline)
+
+                        for (l in list.indices) {
+                            val hm = HashMap<String, String>()
+                            hm["lat"] = list[l].latitude.toString()
+                            hm["lng"] = list[l].longitude.toString()
+                            path.add(hm)
+                        }
+                    }
+                }
+                routes.add(path)
+            }
+            return routes
+        }
+
+        private fun decodePoly(encoded: String): List<LatLng> {
+            val poly = ArrayList<LatLng>()
+            var index = 0
+            val len = encoded.length
+            var lat = 0
+            var lng = 0
+
+            while (index < len) {
+                var b: Int
+                var shift = 0
+                var result = 0
+                do {
+                    b = encoded[index++].code - 63
+                    result = result or (b and 0x1f shl shift)
+                    shift += 5
+                } while (b >= 0x20)
+                val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+                lat += dlat
+
+                shift = 0
+                result = 0
+                do {
+                    b = encoded[index++].code - 63
+                    result = result or (b and 0x1f shl shift)
+                    shift += 5
+                } while (b >= 0x20)
+                val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+                lng += dlng
+
+                val p = LatLng((lat.toDouble() / 1E5), (lng.toDouble() / 1E5))
+                poly.add(p)
+            }
+
+            return poly
+        }
     }
 
 
@@ -385,13 +855,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             val destination = destinationMarker?.position
             if (currentLocation != null && destination != null) {
                 drawRoute(currentLocation!!, destination, getSelectedTravelMode())
-                // default mode
             }
 
         }
 
 
         startEmergencyLocationUpdates()
+        fetchCrimeReports { isCrimesVisible = true }
     }
 
     private fun showSafePlacesInCurrentCity(onComplete: () -> Unit) {
@@ -591,7 +1061,32 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         sendMyLocationToServer(currentLatitude, currentLongitude)
+        if (isNavigationStarted) {
+            checkNavigationProgress(latLng)
+        }
     }
+
+    private fun checkNavigationProgress(current: LatLng) {
+        if (currentStepIndex >= navigationSteps.size) return
+
+        val targetStep = navigationSteps[currentStepIndex]
+        val distance = FloatArray(1)
+        Location.distanceBetween(
+            current.latitude, current.longitude,
+            targetStep.location.latitude, targetStep.location.longitude,
+            distance
+        )
+
+        if (distance[0] < 30) { // 30 метров — можно уменьшить
+            Toast.makeText(this, targetStep.instruction, Toast.LENGTH_LONG).show()
+            currentStepIndex++
+
+            if (currentStepIndex == navigationSteps.size) {
+                Toast.makeText(this, "Вы прибыли в пункт назначения!", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
 
 
 
@@ -708,32 +1203,51 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     val routes = json.getJSONArray("routes")
                     if (routes.length() > 0) {
                         val points = mutableListOf<LatLng>()
+                        val instructions = mutableListOf<String>() // ⬅️ добавлено
                         val leg = routes.getJSONObject(0).getJSONArray("legs").getJSONObject(0)
-                        val distanceText = leg.getJSONObject("distance").getString("text")
-                        val durationText = leg.getJSONObject("duration").getString("text")
+                        currentRouteDistance = leg.getJSONObject("distance").getString("text")
+                        currentRouteDuration = leg.getJSONObject("duration").getString("text")
                         val endAddress = leg.getString("end_address")
+
+                        navigationSteps.clear()
+                        currentStepIndex = 0
 
                         val stepsArray = leg.getJSONArray("steps")
                         for (i in 0 until stepsArray.length()) {
                             val step = stepsArray.getJSONObject(i)
                             val polyline = step.getJSONObject("polyline").getString("points")
                             points.addAll(decodePolyline(polyline))
+
+                            val htmlInstruction = step.getString("html_instructions")
+                            val plainText = HtmlCompat.fromHtml(
+                                htmlInstruction,
+                                HtmlCompat.FROM_HTML_MODE_LEGACY
+                            ).toString()
+                            instructions.add(plainText) // ⬅️ добавлено
+                            val endLocation = step.getJSONObject("end_location")
+                            val lat = endLocation.getDouble("lat")
+                            val lng = endLocation.getDouble("lng")
+                            navigationSteps += NavigationStep(plainText, LatLng(lat, lng))
+
                         }
 
                         runOnUiThread {
-                            mMap.addPolyline(
+                            currentRoutePolyline?.remove()
+
+                            currentRoutePolyline = mMap.addPolyline(
                                 PolylineOptions()
                                     .addAll(points)
                                     .width(8f)
                                     .color(ContextCompat.getColor(this@MapsActivity, R.color.teal_700))
                             )
-                            showRoutePanel(endAddress, durationText, distanceText)
+                            showRoutePanel(endAddress, currentRouteDuration, currentRouteDistance) // ⬅️ новый аргумент
                         }
                     }
                 }
             }
         })
     }
+
 
     private fun decodePolyline(encoded: String): List<LatLng> {
         val poly = ArrayList<LatLng>()
@@ -787,41 +1301,52 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<TextView>(R.id.route_time_distance).text = "$duration ($distance)"
         findViewById<TextView>(R.id.route_additional_info).text = "Самый быстрый маршрут с учетом пробок"
 
-        findViewById<Button>(R.id.btn_navigate).setOnClickListener {
-            if (currentLocation != null && destinationMarker != null) {
-                val startLat = currentLocation!!.latitude
-                val startLng = currentLocation!!.longitude
-                val destLat = destinationMarker!!.position.latitude
-                val destLng = destinationMarker!!.position.longitude
 
-                val travelMode = when (modeText) {
-                    "Пешком" -> "walking"
-                    "Общественный транспорт" -> "transit"
-                    else -> "driving"
-                }
+        // ✅ Отображаем пошаговые инструкции внутри RecyclerView
 
-                val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&origin=$startLat,$startLng&destination=$destLat,$destLng&travelmode=$travelMode")
-                val intent = Intent(Intent.ACTION_VIEW, uri)
-                intent.setPackage("com.google.android.apps.maps")
-
-                if (intent.resolveActivity(packageManager) != null) {
-                    startActivity(intent)
-                } else {
-                    Toast.makeText(this, "Google Maps не установлены", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-
+        // Кнопка "Поделиться маршрутом"
         findViewById<Button>(R.id.btn_share_route).setOnClickListener {
-            val text = "Маршрут: $duration ($distance) до $destination"
-            val shareIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, text)
-                type = "text/plain"
+            UserManager.getUserId(this) { senderId ->
+                if (senderId == null) {
+                    Toast.makeText(this, "Ошибка: ID пользователя не найден", Toast.LENGTH_SHORT).show()
+                    return@getUserId
+                }
+
+                val destLat = destinationMarker?.position?.latitude ?: return@getUserId
+                val destLng = destinationMarker?.position?.longitude ?: return@getUserId
+
+                val route = SharedRoute(
+                    senderId = senderId,
+                    startLat = currentLatitude,
+                    startLng = currentLongitude,
+                    destLat = destLat,
+                    destLng = destLng,
+                    duration = currentRouteDuration,
+                    distance = currentRouteDistance,
+                    createdAt = ""
+                )
+
+                val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
+                val token = UserManager.getAuthToken(this) ?: return@getUserId
+
+                api.sendRouteToContacts("Bearer $token", route).enqueue(object : Callback<ResponseBody> {
+                    override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                        Toast.makeText(this@MapsActivity, "Маршрут отправлен!", Toast.LENGTH_SHORT).show()
+                    }
+
+                    override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                        Toast.makeText(this@MapsActivity, "Ошибка отправки маршрута", Toast.LENGTH_SHORT).show()
+                    }
+                })
             }
-            startActivity(Intent.createChooser(shareIntent, "Поделиться маршрутом через"))
+
+
         }
+
+
+
     }
+
 
 
 

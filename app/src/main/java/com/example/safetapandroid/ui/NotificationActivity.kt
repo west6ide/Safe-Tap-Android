@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -13,6 +14,7 @@ import com.example.safetapandroid.R
 import com.example.safetapandroid.network.AuthApi
 import com.example.safetapandroid.network.Notification
 import com.example.safetapandroid.network.RetrofitClient
+import com.example.safetapandroid.network.SharedRoute
 import com.example.safetapandroid.utils.UserManager
 import okhttp3.ResponseBody
 import retrofit2.Call
@@ -27,8 +29,13 @@ class NotificationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notification)
 
+        findViewById<ImageButton>(R.id.btnCloseNotification).setOnClickListener {
+            finish() // закрыть текущий экран
+        }
+
         notificationContainer = findViewById(R.id.notificationContainer)
         fetchNotifications()
+        fetchSharedRoutes()
     }
 
     private fun fetchNotifications() {
@@ -89,4 +96,54 @@ class NotificationActivity : AppCompatActivity() {
             notificationContainer.addView(notificationView)
         }
     }
+
+    private fun fetchSharedRoutes() {
+        val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
+        val token = UserManager.getAuthToken(this) ?: return
+
+        api.getSharedRoutes("Bearer $token").enqueue(object : Callback<List<SharedRoute>> {
+            override fun onResponse(call: Call<List<SharedRoute>>, response: Response<List<SharedRoute>>) {
+                if (response.isSuccessful) {
+                    val routes = response.body() ?: return
+                    displaySharedRoutes(routes)
+                } else {
+                    Log.e("NotificationActivity", "Не удалось загрузить маршруты: ${response.code()}")
+                }
+            }
+
+            override fun onFailure(call: Call<List<SharedRoute>>, t: Throwable) {
+                Log.e("NotificationActivity", "Ошибка: ${t.message}")
+            }
+        })
+    }
+
+
+    private fun displaySharedRoutes(routes: List<SharedRoute>) {
+        for (route in routes) {
+            val routeView = layoutInflater.inflate(R.layout.item_notification, null)
+
+            val titleTextView = routeView.findViewById<TextView>(R.id.notificationTitle)
+            val messageTextView = routeView.findViewById<TextView>(R.id.notificationMessage)
+            val openMapButton = routeView.findViewById<Button>(R.id.btnOpenMap)
+            val callButton = routeView.findViewById<Button>(R.id.btnCall)
+
+            titleTextView.text = "Маршрут от контакта"
+            messageTextView.text = "Длительность: ${route.duration}, Расстояние: ${route.distance}"
+
+            openMapButton.setOnClickListener {
+                val intent = Intent(this@NotificationActivity, RoutePreviewActivity::class.java).apply {
+                    putExtra("start_lat", route.startLat)
+                    putExtra("start_lng", route.startLng)
+                    putExtra("dest_lat", route.destLat)
+                    putExtra("dest_lng", route.destLng)
+                }
+                startActivity(intent)
+            }
+
+            callButton.visibility = View.GONE // Кнопка "Позвонить" тут не нужна
+
+            notificationContainer.addView(routeView)
+        }
+    }
+
 }

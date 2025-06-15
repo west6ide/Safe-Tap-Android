@@ -88,6 +88,38 @@ data class UserProfile(
     @SerializedName("Email") val email: String
 )
 
+data class CrimeReport(
+    val id: Int,
+    val type: String,
+    val article: String,
+    val severity: String,
+    val region: String,
+    val street: String,
+    val house: String,
+    val place_type: String,
+    val target: String,
+    val department: String,
+    val crime_date: String,
+    val kusi_number: String,
+    val latitude: Double,
+    val longitude: Double,
+    val createdAt: String
+)
+
+data class SharedRoute(
+    val id: Int = 0,
+    val senderId: Int, // ✅ правильно
+    val startLat: Double,
+    val startLng: Double,
+    val destLat: Double,
+    val destLng: Double,
+    val duration: String,
+    val distance: String,
+    val createdAt: String
+)
+
+
+
 
 
 interface AuthApi {
@@ -158,6 +190,20 @@ interface AuthApi {
         @Body profile: Map<String, String>
     ): Call<ResponseBody>
 
+
+    @GET("/crimes/get")
+    fun getCrimeReports(): Call<List<CrimeReport>>
+
+    @POST("/share_route")
+    fun sendRouteToContacts(
+        @Header("Authorization") token: String,
+        @Body route: SharedRoute
+    ): Call<ResponseBody>
+
+    @GET("/shared_routes")
+    fun getSharedRoutes(
+        @Header("Authorization") token: String
+    ): Call<List<SharedRoute>>
 
 
 

@@ -1,40 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notificationItem"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="12dp"
+    android:background="@android:color/white"
+    android:layout_margin="6dp"
+    android:elevation="2dp">
 
     <TextView
         android:id="@+id/notificationTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:textStyle="bold"/>
+        android:text="Заголовок"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="@android:color/black" />
 
     <TextView
         android:id="@+id/notificationMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:paddingBottom="8dp"/>
+        android:text="Описание уведомления"
+        android:layout_marginTop="4dp"
+        android:textColor="@android:color/darker_gray" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:orientation="horizontal">
 
         <Button
             android:id="@+id/btnOpenMap"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Open Map"/>
+            android:text="Открыть карту" />
 
         <Button
             android:id="@+id/btnCall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Call"/>
+            android:text="Позвонить"
+            android:layout_marginStart="12dp" />
     </LinearLayout>
 </LinearLayout>

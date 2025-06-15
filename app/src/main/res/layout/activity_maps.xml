@@ -152,6 +152,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Панель маршрута -->
+        <!-- Панель маршрута -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/route_info_panel"
             android:layout_width="match_parent"
@@ -205,8 +206,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 android:layout_marginTop="8dp"
                 android:entries="@array/transport_modes"
-                android:prompt="@string/choose_transport_mode"
-                />
+                android:prompt="@string/choose_transport_mode" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -217,6 +217,13 @@
                 app:layout_constraintTop_toBottomOf="@id/transport_mode_spinner"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
+
+                <Button
+                    android:id="@+id/btn_cancel_route"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="✖ Отмена"/>
 
                 <Button
                     android:id="@+id/btn_navigate"
@@ -232,7 +239,197 @@
                     android:layout_height="wrap_content"
                     android:text="🔗 Поделиться"/>
             </LinearLayout>
+
+
+
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <!-- Панель навигации (шаги) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/navigation_panel"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:layout_margin="12dp"
+            android:background="@android:color/white"
+            android:elevation="8dp"
+            android:padding="12dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/navigation_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Навигация"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <Button
+                android:id="@+id/btn_cancel_navigation"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="❌ Отмена"
+                android:layout_marginTop="8dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_step_instructions"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginTop="12dp"
+                app:layout_constraintTop_toBottomOf="@id/navigation_title"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+
+        <!-- 🧩 Панель выбора: Persons / Places -->
+        <LinearLayout
+            android:id="@+id/panel_danger_main"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@android:color/white"
+            android:padding="16dp"
+            android:elevation="8dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:text="Dangerous persons and places"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_marginBottom="8dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+
+            <LinearLayout
+                android:id="@+id/btn_danger_places"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_place"
+                    android:layout_marginEnd="8dp" />
+                <TextView
+                    android:text="Places" android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_danger_persons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_person"
+                    android:layout_marginEnd="8dp" />
+                <TextView
+                    android:text="Persons"
+                    android:textSize="16sp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 📜 Панель категорий преступлений -->
+        <ScrollView
+            android:id="@+id/panel_danger_categories"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_margin="12dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:id="@+id/layout_danger_categories"
+                android:orientation="vertical"
+                android:background="@android:color/white"
+                android:padding="16dp"
+                android:elevation="8dp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+
+            <LinearLayout
+                    android:id="@+id/btn_category_robbery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_robbery"
+                        android:layout_marginEnd="8dp"/>
+                    <TextView
+                        android:text="Robbery"
+                        android:textSize="16sp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btn_category_violence"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_violence"
+                        android:layout_marginEnd="8dp"/>
+                    <TextView
+                        android:text="Violence"
+                        android:textSize="16sp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/btn_category_murder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_murder"
+                        android:layout_marginEnd="8dp"/>
+                    <TextView
+                        android:text="Murder"
+                        android:textSize="16sp"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
