@@ -17,6 +17,7 @@ import com.example.safetapandroid.network.RetrofitClient
 import com.example.safetapandroid.network.SharedRoute
 import com.example.safetapandroid.utils.UserManager
 import okhttp3.ResponseBody
+import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -84,6 +85,8 @@ class NotificationActivity : AppCompatActivity() {
 
         notifications.sortedByDescending { it.createdAt }.forEach { notification ->
             when (notification.type) {
+                "contact_request" -> displayContactRequestNotification(notification)
+                "contact_response" -> displayContactResponseNotification(notification)
                 "sos" -> displaySosNotification(notification)
                 "route" -> displayRouteNotification(notification)
                 else -> displayGenericNotification(notification)
@@ -169,4 +172,82 @@ class NotificationActivity : AppCompatActivity() {
         return Pair(duration, distance)
     }
 
+
+    private fun displayContactRequestNotification(notification: Notification) {
+        val view = layoutInflater.inflate(R.layout.item_contact_request, null).apply {
+            findViewById<TextView>(R.id.notificationTitle).text = notification.title
+            findViewById<TextView>(R.id.notificationMessage).text = notification.message
+
+            findViewById<Button>(R.id.btnAccept).setOnClickListener {
+                handleContactRequest(notification, true, this) // Pass the view to the handler
+            }
+
+            findViewById<Button>(R.id.btnReject).setOnClickListener {
+                handleContactRequest(notification, false, this) // Pass the view to the handler
+            }
+        }
+        notificationContainer.addView(view)
+    }
+
+    private fun handleContactRequest(notification: Notification, accept: Boolean, view: View) {
+        val metadata = notification.metadata ?: return
+        val requestId = try {
+            JSONObject(metadata).optInt("request_id", 0)
+        } catch (e: Exception) {
+            0
+        }
+
+        if (requestId == 0) return
+
+        val token = UserManager.getAuthToken(this) ?: return
+        val action = if (accept) "accept" else "reject"
+
+        // Immediately remove the view
+        notificationContainer.removeView(view)
+
+        val request = AuthApi.HandleContactRequest(
+            requestId = requestId,
+            action = action,
+            notificationId = notification.id
+        )
+
+        api.handleContactRequest("Bearer $token", request)
+            .enqueue(object : Callback<ResponseBody> {
+                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                    if (!response.isSuccessful) {
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@NotificationActivity,
+                                "Error processing request",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            // Re-add the notification if there was an error
+                            displayContactRequestNotification(notification)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                    runOnUiThread {
+                        Toast.makeText(
+                            this@NotificationActivity,
+                            "Error: ${t.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        // Re-add the notification if there was an error
+                        displayContactRequestNotification(notification)
+                    }
+                }
+            })
+    }
+
+    private fun displayContactResponseNotification(notification: Notification) {
+        val view = layoutInflater.inflate(R.layout.item_notification, null).apply {
+            findViewById<TextView>(R.id.notificationTitle).text = notification.title
+            findViewById<TextView>(R.id.notificationMessage).text = notification.message
+            findViewById<Button>(R.id.btnOpenMap).visibility = View.GONE
+            findViewById<Button>(R.id.btnCall).visibility = View.GONE
+        }
+        notificationContainer.addView(view)
+    }
 }

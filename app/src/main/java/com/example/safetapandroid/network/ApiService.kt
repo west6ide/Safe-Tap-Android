@@ -39,6 +39,8 @@ data class Notification(
     val distance: String?,
     val createdAt: String,
     val type: String?, // "sos" или "route"
+    val title: String,
+    val metadata: String,
     val routeId: Int? // ID связанного маршрута
 )
 
@@ -168,11 +170,6 @@ interface AuthApi {
         @Header("Authorization") token: String
     ): Call<List<DangerousPerson>>
 
-    @POST("/contacts/add")
-    fun addEmergencyContact(
-        @Header("Authorization") token: String,
-        @Body contact: AddContactRequest
-    ): Call<ResponseBody>
 
     data class AddContactRequest(
         @SerializedName("phone_number") val phoneNumber: String,
@@ -208,11 +205,24 @@ interface AuthApi {
         @Body route: SharedRoute
     ): Call<ResponseBody>
 
-    @GET("/shared_routes")
-    fun getSharedRoutes(
-        @Header("Authorization") token: String
-    ): Call<List<SharedRoute>>
 
+    @POST("contacts/request")
+    fun sendContactRequest(
+        @Header("Authorization") token: String,
+        @Body request: AddContactRequest
+    ): Call<ResponseBody>
+
+    @POST("contacts/respond")
+    fun handleContactRequest(
+        @Header("Authorization") token: String,
+        @Body request: HandleContactRequest
+    ): Call<ResponseBody>
+
+    data class HandleContactRequest(
+        @SerializedName("request_id") val requestId: Int,
+        @SerializedName("action") val action: String, // "accept" or "reject"
+        @SerializedName("notification_id") val notificationId: Int // 👈 Добавляем поле
+    )
 
 
 
