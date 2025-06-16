@@ -393,9 +393,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
 
 
-
-
-
         findViewById<Spinner>(R.id.transport_mode_spinner).onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
@@ -404,6 +401,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
                 override fun onNothingSelected(parent: AdapterView<*>) {}
             }
+
+
+        if (intent.getBooleanExtra("show_route_in_panel", false)) {
+            val startLat = intent.getDoubleExtra("start_lat", 0.0)
+            val startLng = intent.getDoubleExtra("start_lng", 0.0)
+            val destLat = intent.getDoubleExtra("dest_lat", 0.0)
+            val destLng = intent.getDoubleExtra("dest_lng", 0.0)
+            val duration = intent.getStringExtra("duration") ?: ""
+            val distance = intent.getStringExtra("distance") ?: ""
+
+            if (startLat != 0.0 && startLng != 0.0 && destLat != 0.0 && destLng != 0.0) {
+                showRouteInPanel(startLat, startLng, destLat, destLng, duration, distance)
+            }
+        }
+
+
     }
 
 
@@ -862,6 +875,35 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         startEmergencyLocationUpdates()
         fetchCrimeReports { isCrimesVisible = true }
+
+//        if (intent.getBooleanExtra("show_route", false)) {
+//            val startLat = intent.getDoubleExtra("start_lat", 0.0)
+//            val startLng = intent.getDoubleExtra("start_lng", 0.0)
+//            val destLat = intent.getDoubleExtra("dest_lat", 0.0)
+//            val destLng = intent.getDoubleExtra("dest_lng", 0.0)
+//
+//            if (startLat != 0.0 && startLng != 0.0 && destLat != 0.0 && destLng != 0.0) {
+//                val start = LatLng(startLat, startLng)
+//                val end = LatLng(destLat, destLng)
+//
+//                // Добавляем маркеры
+//                mMap.addMarker(MarkerOptions().position(start).title("Start"))
+//                mMap.addMarker(MarkerOptions().position(end).title("End"))
+//
+//                // Рисуем маршрут
+//                drawRoute(Location("").apply {
+//                    latitude = startLat
+//                    longitude = startLng
+//                }, end, "driving")
+//
+//                // Центрируем карту
+//                val bounds = LatLngBounds.Builder()
+//                    .include(start)
+//                    .include(end)
+//                    .build()
+//                mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+//            }
+//        }
     }
 
     private fun showSafePlacesInCurrentCity(onComplete: () -> Unit) {
@@ -1308,7 +1350,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<Button>(R.id.btn_share_route).setOnClickListener {
             UserManager.getUserId(this) { senderId ->
                 if (senderId == null) {
-                    Toast.makeText(this, "Ошибка: ID пользователя не найден", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "User ID not found", Toast.LENGTH_SHORT).show()
                     return@getUserId
                 }
 
@@ -1726,6 +1768,278 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 //            Log.e("DangerousPlaces", "Error loading JSON: ${e.message}")
 //        }
 //    }
+
+
+
+
+    private fun showRoutePreview(startLat: Double, startLng: Double,
+                                 destLat: Double, destLng: Double,
+                                 duration: String, distance: String) {
+
+        // Показываем панель
+        findViewById<ConstraintLayout>(R.id.navigation_contact_panel).visibility = View.VISIBLE
+
+        // Устанавливаем информацию о маршруте
+        findViewById<TextView>(R.id.route_distance).text = distance
+        findViewById<TextView>(R.id.route_duration).text = duration
+
+        // Инициализируем карту в контейнере
+        val mapFragment = SupportMapFragment.newInstance()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.map_container, mapFragment)
+            .commit()
+
+        mapFragment.getMapAsync { googleMap ->
+            val start = LatLng(startLat, startLng)
+            val end = LatLng(destLat, destLng)
+
+            // Добавляем маркеры
+            googleMap.addMarker(MarkerOptions().position(start).title("Start"))
+            googleMap.addMarker(MarkerOptions().position(end).title("End"))
+
+            // Рисуем маршрут
+            drawRouteOnMap(googleMap, start, end)
+
+            // Центрируем карту
+            val bounds = LatLngBounds.Builder()
+                .include(start)
+                .include(end)
+                .build()
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+        }
+
+        // Обработчик кнопки закрытия
+        findViewById<Button>(R.id.btn_close_route).setOnClickListener {
+            findViewById<ConstraintLayout>(R.id.navigation_contact_panel).visibility = View.GONE
+        }
+    }
+
+    // Fix the OkHttp callback implementation
+    private fun drawRouteOnMap(googleMap: GoogleMap, origin: LatLng, destination: LatLng) {
+        val url = getDirectionsUrl(origin, destination)
+
+        val httpClient = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        httpClient.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@MapsActivity, "Failed to load route", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                try {
+                    val jsonData = response.body?.string() ?: return
+                    val result = JSONObject(jsonData)
+                    val routes = result.getJSONArray("routes")
+
+                    if (routes.length() > 0) {
+                        val route = routes.getJSONObject(0)
+                        val polyline = route.getJSONObject("overview_polyline").getString("points")
+                        val decodedPath = decodePoly(polyline)
+
+                        runOnUiThread {
+                            googleMap.addPolyline(
+                                PolylineOptions()
+                                    .addAll(decodedPath)
+                                    .width(10f)
+                                    .color(Color.BLUE)
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("RoutePreview", "Error parsing route", e)
+                }
+            }
+        })
+    }
+
+    private fun decodePoly(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+
+            poly.add(LatLng(lat / 1E5, lng / 1E5))
+        }
+        return poly
+    }
+
+
+
+    private fun showRouteInPanel(
+        startLat: Double,
+        startLng: Double,
+        destLat: Double,
+        destLng: Double,
+        duration: String,
+        distance: String
+    ) {
+        // Show the route preview panel
+        val panel = findViewById<ConstraintLayout>(R.id.navigation_contact_panel)
+        panel.visibility = View.VISIBLE
+
+        // Set route info
+        findViewById<TextView>(R.id.route_distance).text = distance
+        findViewById<TextView>(R.id.route_duration).text = duration
+
+        // Initialize map
+        val mapFragment = SupportMapFragment.newInstance()
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.map_container, mapFragment)
+            .commit()
+
+        mapFragment.getMapAsync { googleMap ->
+            val start = LatLng(startLat, startLng)
+            val end = LatLng(destLat, destLng)
+
+            // Add markers
+            googleMap.addMarker(MarkerOptions().position(start).title("Start"))
+            googleMap.addMarker(MarkerOptions().position(end).title("End"))
+
+            // Center camera on route
+            val bounds = LatLngBounds.Builder()
+                .include(start)
+                .include(end)
+                .build()
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+
+            // Draw route
+            drawRouteOnPanelMap(googleMap, start, end)
+        }
+
+        // Handle close button
+        findViewById<Button>(R.id.btn_close_route).setOnClickListener {
+            panel.visibility = View.GONE
+        }
+    }
+
+    private fun drawRouteOnPanelMap(googleMap: GoogleMap, start: LatLng, end: LatLng) {
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=${start.latitude},${start.longitude}" +
+                "&destination=${end.latitude},${end.longitude}" +
+                "&mode=driving" +
+                "&key=AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E"
+
+        val request = Request.Builder().url(url).build()
+
+        OkHttpClient().newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@MapsActivity, "Ошибка загрузки маршрута: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                try {
+                    val jsonData = response.body?.string() ?: return
+                    Log.d("RouteResponse", jsonData) // Логируем ответ для отладки
+
+                    val jsonObject = JSONObject(jsonData)
+                    if (jsonObject.getString("status") != "OK") {
+                        runOnUiThread {
+                            Toast.makeText(this@MapsActivity, "Ошибка построения маршрута", Toast.LENGTH_LONG).show()
+                        }
+                        return
+                    }
+
+                    val routes = jsonObject.getJSONArray("routes")
+                    if (routes.length() == 0) return
+
+                    val route = routes.getJSONObject(0)
+                    val legs = route.getJSONArray("legs")
+                    if (legs.length() == 0) return
+
+                    // Получаем время и расстояние
+                    val leg = legs.getJSONObject(0)
+                    val distance = leg.getJSONObject("distance").getString("text")
+                    val duration = leg.getJSONObject("duration").getString("text")
+
+                    // Получаем полилинию
+                    val overviewPolyline = route.getJSONObject("overview_polyline")
+                    val points = overviewPolyline.getString("points")
+                    val decodedPath = decodePolylines(points)
+
+                    runOnUiThread {
+                        // Обновляем UI с данными о маршруте
+                        findViewById<TextView>(R.id.route_distance).text = distance
+                        findViewById<TextView>(R.id.route_duration).text = duration
+
+                        // Рисуем маршрут на карте
+                        googleMap.addPolyline(
+                            PolylineOptions()
+                                .addAll(decodedPath)
+                                .width(10f)
+                                .color(ContextCompat.getColor(this@MapsActivity, R.color.teal_700))
+                        )
+                    }
+                } catch (e: Exception) {
+                    Log.e("RouteError", "Ошибка разбора маршрута", e)
+                    runOnUiThread {
+                        Toast.makeText(this@MapsActivity, "Ошибка обработки маршрута", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun decodePolylines(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or (b and 0x1f shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if (result and 1 != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+
+            poly.add(LatLng(lat / 1E5, lng / 1E5))
+        }
+        return poly
+    }
 
 
 }

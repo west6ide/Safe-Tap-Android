@@ -29,12 +29,20 @@ data class SOSRequest(
 data class Notification(
     val id: Int,
     val userId: Int,
-    val contactId: Int,
+    val contactId: Int?,
     val message: String,
-    val latitude: Double,
-    val longitude: Double,
-    val createdAt: String
+    val latitude: Double,       // start latitude
+    val longitude: Double,      // start longitude
+    val destLatitude: Double?,  // destination latitude (nullable)
+    val destLongitude: Double?, // destination longitude (nullable)
+    val duration: String?,
+    val distance: String?,
+    val createdAt: String,
+    val type: String?, // "sos" или "route"
+    val routeId: Int? // ID связанного маршрута
 )
+
+
 data class LiveLocation(
     val userId: Int,
     val latitude: Double,

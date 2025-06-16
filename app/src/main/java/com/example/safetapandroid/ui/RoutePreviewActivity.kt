@@ -2,6 +2,8 @@ package com.example.safetapandroid.ui
 
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.safetapandroid.R
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -9,32 +11,41 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PolylineOptions
-import okhttp3.OkHttpClient
-import okhttp3.Request
+import okhttp3.*
 import org.json.JSONObject
+import java.io.IOException
 
 class RoutePreviewActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
-    private lateinit var mapFragment: SupportMapFragment
-
     private var startLat = 0.0
     private var startLng = 0.0
     private var destLat = 0.0
     private var destLng = 0.0
+    private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_route_preview)
 
+        // Get coordinates from intent
         startLat = intent.getDoubleExtra("start_lat", 0.0)
         startLng = intent.getDoubleExtra("start_lng", 0.0)
         destLat = intent.getDoubleExtra("dest_lat", 0.0)
         destLng = intent.getDoubleExtra("dest_lng", 0.0)
 
-        mapFragment = supportFragmentManager.findFragmentById(R.id.map_preview) as SupportMapFragment
+        // Verify coordinates are valid
+        if (startLat == 0.0 || startLng == 0.0 || destLat == 0.0 || destLng == 0.0) {
+            Toast.makeText(this, "Invalid route coordinates", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
+        val mapFragment = supportFragmentManager
+            .findFragmentById(R.id.map_preview) as SupportMapFragment
         mapFragment.getMapAsync(this)
     }
 
@@ -44,10 +55,18 @@ class RoutePreviewActivity : AppCompatActivity(), OnMapReadyCallback {
         val start = LatLng(startLat, startLng)
         val end = LatLng(destLat, destLng)
 
-        mMap.addMarker(MarkerOptions().position(start).title("Начало"))
-        mMap.addMarker(MarkerOptions().position(end).title("Конец"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 13f))
+        // Add markers
+        mMap.addMarker(MarkerOptions().position(start).title("Start"))
+        mMap.addMarker(MarkerOptions().position(end).title("End"))
 
+        // Center camera on route
+        val bounds = LatLngBounds.Builder()
+            .include(start)
+            .include(end)
+            .build()
+        mMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100))
+
+        // Draw route
         drawRoute(start, end)
     }
 
@@ -57,29 +76,43 @@ class RoutePreviewActivity : AppCompatActivity(), OnMapReadyCallback {
                 "&destination=${end.latitude},${end.longitude}" +
                 "&key=AIzaSyANf9wnCcRFRslApgQTjqYhDLOg6nIQ9-E"
 
-        Thread {
-            val request = Request.Builder().url(url).build()
-            val response = OkHttpClient().newCall(request).execute()
-            val json = JSONObject(response.body?.string() ?: return@Thread)
+        val request = Request.Builder().url(url).build()
 
-            val routes = json.getJSONArray("routes")
-            if (routes.length() == 0) return@Thread
-
-            val steps = routes.getJSONObject(0).getJSONArray("legs")
-                .getJSONObject(0).getJSONArray("steps")
-
-            val points = mutableListOf<LatLng>()
-            for (i in 0 until steps.length()) {
-                val polyline = steps.getJSONObject(i).getJSONObject("polyline").getString("points")
-                points.addAll(decodePolyline(polyline))
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("RoutePreview", "Failed to fetch route", e)
+                runOnUiThread {
+                    Toast.makeText(this@RoutePreviewActivity, "Failed to load route", Toast.LENGTH_SHORT).show()
+                }
             }
 
-            runOnUiThread {
-                mMap.addPolyline(
-                    PolylineOptions().addAll(points).width(10f).color(Color.BLUE)
-                )
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.let { responseBody ->
+                    try {
+                        val json = JSONObject(responseBody.string())
+                        val routes = json.getJSONArray("routes")
+                        if (routes.length() > 0) {
+                            val route = routes.getJSONObject(0)
+                            val polyline = route.getJSONObject("overview_polyline").getString("points")
+                            val decodedPath = decodePolyline(polyline)
+
+                            runOnUiThread {
+                                mMap.addPolyline(
+                                    PolylineOptions()
+                                        .addAll(decodedPath)
+                                        .width(10f)
+                                        .color(Color.BLUE)
+                                )
+                            }
+                        } else {
+
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RoutePreview", "Error parsing route", e)
+                    }
+                }
             }
-        }.start()
+        })
     }
 
     private fun decodePolyline(encoded: String): List<LatLng> {
@@ -111,8 +144,7 @@ class RoutePreviewActivity : AppCompatActivity(), OnMapReadyCallback {
             val dlng = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
             lng += dlng
 
-            val p = LatLng(lat / 1E5, lng / 1E5)
-            poly.add(p)
+            poly.add(LatLng(lat / 1E5, lng / 1E5))
         }
         return poly
     }

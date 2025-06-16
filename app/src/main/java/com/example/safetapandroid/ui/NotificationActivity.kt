@@ -24,25 +24,20 @@ import retrofit2.Response
 class NotificationActivity : AppCompatActivity() {
 
     private lateinit var notificationContainer: LinearLayout
+    private val api by lazy { RetrofitClient.getInstance(this).create(AuthApi::class.java) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_notification)
 
-        findViewById<ImageButton>(R.id.btnCloseNotification).setOnClickListener {
-            finish() // закрыть текущий экран
-        }
-
+        findViewById<ImageButton>(R.id.btnCloseNotification).setOnClickListener { finish() }
         notificationContainer = findViewById(R.id.notificationContainer)
-        fetchNotifications()
-        fetchSharedRoutes()
+
+        fetchAllNotifications()
     }
 
-    private fun fetchNotifications() {
-        val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
-        val token = UserManager.getAuthToken(this)
-
-        if (token == null) {
+    private fun fetchAllNotifications() {
+        val token = UserManager.getAuthToken(this) ?: run {
             Toast.makeText(this, "Authentication token not found!", Toast.LENGTH_SHORT).show()
             return
         }
@@ -50,100 +45,128 @@ class NotificationActivity : AppCompatActivity() {
         api.getNotifications("Bearer $token").enqueue(object : Callback<List<Notification>> {
             override fun onResponse(call: Call<List<Notification>>, response: Response<List<Notification>>) {
                 if (response.isSuccessful) {
-                    val notifications = response.body() ?: emptyList()
-                    displayNotifications(notifications)
+                    response.body()?.let { notifications ->
+                        if (notifications.isEmpty()) {
+                            showEmptyState()
+                        } else {
+                            displayAllNotifications(notifications)
+                        }
+                    }
                 } else {
-                    Toast.makeText(this@NotificationActivity, "Failed to fetch notifications", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@NotificationActivity,
+                        "Failed to fetch notifications",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
 
             override fun onFailure(call: Call<List<Notification>>, t: Throwable) {
-                Toast.makeText(this@NotificationActivity, "Error: ${t.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this@NotificationActivity,
+                    "Error: ${t.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         })
     }
 
-    private fun displayNotifications(notifications: List<Notification>) {
+    private fun showEmptyState() {
+        notificationContainer.removeAllViews()
+        val emptyView = layoutInflater.inflate(R.layout.item_empty_state, null).apply {
+            findViewById<TextView>(R.id.emptyText).text = "No notifications yet"
+        }
+        notificationContainer.addView(emptyView)
+    }
+
+    private fun displayAllNotifications(notifications: List<Notification>) {
         notificationContainer.removeAllViews()
 
-        for (notification in notifications) {
-            val notificationView = layoutInflater.inflate(R.layout.item_notification, null)
-
-            val titleTextView = notificationView.findViewById<TextView>(R.id.notificationTitle)
-            val messageTextView = notificationView.findViewById<TextView>(R.id.notificationMessage)
-            val openMapButton = notificationView.findViewById<Button>(R.id.btnOpenMap)
-            val callButton = notificationView.findViewById<Button>(R.id.btnCall)
-
-            titleTextView.text = "Attention! SOS Signal Received"
-            messageTextView.text = notification.message
-
-            // Extract the latitude and longitude from the notification message
-            val latitude = notification.latitude
-            val longitude = notification.longitude
-
-            openMapButton.setOnClickListener {
-                val intent = Intent(this@NotificationActivity, MapsActivity::class.java)
-                intent.putExtra("notification_latitude", latitude)
-                intent.putExtra("notification_longitude", longitude)
-                startActivity(intent)
+        notifications.sortedByDescending { it.createdAt }.forEach { notification ->
+            when (notification.type) {
+                "sos" -> displaySosNotification(notification)
+                "route" -> displayRouteNotification(notification)
+                else -> displayGenericNotification(notification)
             }
-
-
-            callButton.setOnClickListener {
-                Toast.makeText(this, "Calling emergency contact...", Toast.LENGTH_SHORT).show()
-            }
-
-            notificationContainer.addView(notificationView)
         }
     }
 
-    private fun fetchSharedRoutes() {
-        val api = RetrofitClient.getInstance(this).create(AuthApi::class.java)
-        val token = UserManager.getAuthToken(this) ?: return
+    private fun displaySosNotification(notification: Notification) {
+        val view = layoutInflater.inflate(R.layout.item_notification, null).apply {
+            findViewById<TextView>(R.id.notificationTitle).text = "SOS Alert"
+            findViewById<TextView>(R.id.notificationMessage).text = notification.message
 
-        api.getSharedRoutes("Bearer $token").enqueue(object : Callback<List<SharedRoute>> {
-            override fun onResponse(call: Call<List<SharedRoute>>, response: Response<List<SharedRoute>>) {
-                if (response.isSuccessful) {
-                    val routes = response.body() ?: return
-                    displaySharedRoutes(routes)
-                } else {
-                    Log.e("NotificationActivity", "Не удалось загрузить маршруты: ${response.code()}")
-                }
+            findViewById<Button>(R.id.btnOpenMap).setOnClickListener {
+                startActivity(Intent(this@NotificationActivity, MapsActivity::class.java).apply {
+                    putExtra("notification_latitude", notification.latitude)
+                    putExtra("notification_longitude", notification.longitude)
+                })
             }
 
-            override fun onFailure(call: Call<List<SharedRoute>>, t: Throwable) {
-                Log.e("NotificationActivity", "Ошибка: ${t.message}")
+            findViewById<Button>(R.id.btnCall).setOnClickListener {
+                Toast.makeText(
+                    this@NotificationActivity,
+                    "Calling emergency contact...",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-        })
+        }
+        notificationContainer.addView(view)
     }
 
+    private fun displayRouteNotification(notification: Notification) {
+        val view = layoutInflater.inflate(R.layout.item_notification, null).apply {
+            findViewById<TextView>(R.id.notificationTitle).text = "Shared Route"
+            findViewById<TextView>(R.id.notificationMessage).text = notification.message
 
-    private fun displaySharedRoutes(routes: List<SharedRoute>) {
-        for (route in routes) {
-            val routeView = layoutInflater.inflate(R.layout.item_notification, null)
+            findViewById<Button>(R.id.btnOpenMap).setOnClickListener {
+                if (notification.destLatitude == null || notification.destLongitude == null) {
+                    Toast.makeText(
+                        this@NotificationActivity,
+                        "Route destination not available",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
 
-            val titleTextView = routeView.findViewById<TextView>(R.id.notificationTitle)
-            val messageTextView = routeView.findViewById<TextView>(R.id.notificationMessage)
-            val openMapButton = routeView.findViewById<Button>(R.id.btnOpenMap)
-            val callButton = routeView.findViewById<Button>(R.id.btnCall)
-
-            titleTextView.text = "Маршрут от контакта"
-            messageTextView.text = "Длительность: ${route.duration}, Расстояние: ${route.distance}"
-
-            openMapButton.setOnClickListener {
-                val intent = Intent(this@NotificationActivity, RoutePreviewActivity::class.java).apply {
-                    putExtra("start_lat", route.startLat)
-                    putExtra("start_lng", route.startLng)
-                    putExtra("dest_lat", route.destLat)
-                    putExtra("dest_lng", route.destLng)
+                val intent = Intent(this@NotificationActivity, MapsActivity::class.java).apply {
+                    putExtra("show_route_in_panel", true)
+                    putExtra("start_lat", notification.latitude)
+                    putExtra("start_lng", notification.longitude)
+                    putExtra("dest_lat", notification.destLatitude)
+                    putExtra("dest_lng", notification.destLongitude)
+                    putExtra("duration", notification.duration ?: "")
+                    putExtra("distance", notification.distance ?: "")
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 startActivity(intent)
+                finish()
             }
-
-            callButton.visibility = View.GONE // Кнопка "Позвонить" тут не нужна
-
-            notificationContainer.addView(routeView)
+            findViewById<Button>(R.id.btnCall).visibility = View.GONE
         }
+        notificationContainer.addView(view)
+    }
+
+    private fun displayGenericNotification(notification: Notification) {
+        val view = layoutInflater.inflate(R.layout.item_notification, null).apply {
+            findViewById<TextView>(R.id.notificationTitle).text = "Notification"
+            findViewById<TextView>(R.id.notificationMessage).text = notification.message
+
+            findViewById<Button>(R.id.btnOpenMap).visibility = View.GONE
+            findViewById<Button>(R.id.btnCall).visibility = View.GONE
+        }
+        notificationContainer.addView(view)
+    }
+
+    private fun extractRouteInfo(message: String): Pair<String, String> {
+        // Example message format: "Route shared: 15 mins (2.5 km)"
+        val durationRegex = Regex("""(\d+\s*(mins?|hours?|hrs?))""")
+        val distanceRegex = Regex("""(\d+\.?\d*\s*(km|miles?))""")
+
+        val duration = durationRegex.find(message)?.value ?: ""
+        val distance = distanceRegex.find(message)?.value ?: ""
+
+        return Pair(duration, distance)
     }
 
 }
